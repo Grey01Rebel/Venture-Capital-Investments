@@ -1,5 +1,5 @@
 class WalletPolicy < ApplicationPolicy
   def show?
-    record.user_id == user.id
+    record.present? && record.user_id == user.id
   end
 end

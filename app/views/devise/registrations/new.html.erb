@@ -1,0 +1,80 @@
+<div class="min-h-[80vh] flex items-center justify-center py-8">
+  <div class="w-full max-w-md">
+
+    <div class="text-center mb-8">
+      <h1 class="text-2xl font-semibold text-white tracking-tight">
+        Create your account
+      </h1>
+      <p class="mt-2 text-sm text-slate-400">
+        Join the platform and start managing your investments
+      </p>
+    </div>
+
+    <div class="bg-slate-800 border border-slate-700 rounded-lg px-8 py-8">
+
+      <%# Inline validation errors %>
+      <% if resource.errors.any? %>
+        <div class="mb-6 rounded-md bg-slate-900 border border-red-700 px-4 py-3">
+          <p class="text-sm font-medium text-red-400 mb-1">
+            Please fix the following:
+          </p>
+          <ul class="list-disc list-inside space-y-0.5">
+            <% resource.errors.full_messages.each do |msg| %>
+              <li class="text-sm text-red-400"><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <%= form_for(resource, as: resource_name, url: registration_path(resource_name)) do |f| %>
+        <div class="space-y-5">
+
+          <div>
+            <%= f.label :full_name, "Full name", class: "block text-sm font-medium text-slate-300 mb-1.5" %>
+            <%= f.text_field :full_name,
+                             autofocus: true,
+                             autocomplete: "name",
+                             placeholder: "Your full name",
+                             class: "w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors" %>
+          </div>
+
+          <div>
+            <%= f.label :email, "Email address", class: "block text-sm font-medium text-slate-300 mb-1.5" %>
+            <%= f.email_field :email,
+                              autocomplete: "email",
+                              placeholder: "you@example.com",
+                              class: "w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors" %>
+          </div>
+
+          <div>
+            <%= f.label :password, "Password", class: "block text-sm font-medium text-slate-300 mb-1.5" %>
+            <%= f.password_field :password,
+                                 autocomplete: "new-password",
+                                 placeholder: "Minimum 8 characters",
+                                 class: "w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors" %>
+          </div>
+
+          <div>
+            <%= f.label :password_confirmation, "Confirm password", class: "block text-sm font-medium text-slate-300 mb-1.5" %>
+            <%= f.password_field :password_confirmation,
+                                 autocomplete: "new-password",
+                                 placeholder: "Re-enter your password",
+                                 class: "w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors" %>
+          </div>
+
+          <%= f.submit "Create account",
+                       class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold rounded-md px-4 py-2.5 text-sm transition-colors duration-150 cursor-pointer mt-2" %>
+
+        </div>
+      <% end %>
+    </div>
+
+    <div class="mt-6 text-center text-sm text-slate-400">
+      Already have an account?
+      <%= link_to "Sign in",
+                  new_session_path(resource_name),
+                  class: "text-amber-400 hover:text-amber-300 transition-colors font-medium" %>
+    </div>
+
+  </div>
+</div>
