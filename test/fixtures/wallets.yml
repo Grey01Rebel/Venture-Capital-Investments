@@ -1,0 +1,14 @@
+# test/fixtures/wallets.yml
+one:
+  user: one
+  available_balance: 0.0
+  total_deposited: 0.0
+  total_withdrawn: 0.0
+  total_profit: 0.0
+
+two:
+  user: two
+  available_balance: 0.0
+  total_deposited: 0.0
+  total_withdrawn: 0.0
+  total_profit: 0.0
