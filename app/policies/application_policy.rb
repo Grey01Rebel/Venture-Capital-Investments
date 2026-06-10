@@ -15,4 +15,19 @@ class ApplicationPolicy
   def update?  = false
   def edit?    = update?
   def destroy? = false
+
+  class Scope
+    attr_reader :user, :scope
+
+    def initialize(user, scope)
+      raise Pundit::NotAuthorizedError, "must be logged in" unless user
+
+      @user  = user
+      @scope = scope
+    end
+
+    def resolve
+      raise NotImplementedError, "#{self.class} must implement #resolve"
+    end
+  end
 end

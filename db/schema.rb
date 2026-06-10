@@ -10,9 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_06_231319) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_09_225315) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "investment_plans", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.decimal "investment_amount_usd", precision: 12, scale: 2, null: false
+    t.decimal "daily_return_rate", precision: 5, scale: 2, null: false
+    t.integer "duration_days", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_investment_plans_on_active"
+    t.index ["name"], name: "index_investment_plans_on_name", unique: true
+    t.index ["position"], name: "index_investment_plans_on_position", unique: true
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "full_name", default: "", null: false

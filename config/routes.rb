@@ -11,4 +11,6 @@ Rails.application.routes.draw do
   devise_scope :user do
     root "devise/sessions#new"
   end
+
+  get "/plans", to: "plans#index"
 end

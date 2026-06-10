@@ -1,0 +1,78 @@
+<%# Page header %>
+<div class="mb-8 border-b border-slate-700 pb-6">
+  <p class="text-sm text-slate-400 uppercase tracking-widest font-medium mb-1">Investment Plans</p>
+  <h1 class="text-2xl font-semibold text-white">
+    Available Plans
+  </h1>
+  <p class="mt-1 text-sm text-slate-400">
+    Select a plan that matches your investment objectives.
+    All plans operate on a fixed 14-day cycle with daily returns distributed from Bitcoin mining operations.
+  </p>
+</div>
+
+<%# Plans grid %>
+<% if @plans.present? %>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <% @plans.each do |plan| %>
+      <div class="bg-slate-800 border border-slate-700 rounded-lg flex flex-col">
+
+        <%# Card header %>
+        <div class="px-6 pt-6 pb-4 border-b border-slate-700">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-slate-500 uppercase tracking-widest">
+              Plan <%= plan.position %>
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-xs text-green-400 font-medium">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-400"></span>
+              Active
+            </span>
+          </div>
+          <h2 class="text-xl font-semibold text-white">
+            <%= plan.name %>
+          </h2>
+        </div>
+
+        <%# Description — flex-1 ensures equal card height across a row %>
+        <div class="px-6 py-4 flex-1">
+          <p class="text-sm text-slate-400 leading-relaxed">
+            <%= plan.description %>
+          </p>
+        </div>
+
+        <%# Stats grid %>
+        <div class="px-6 pb-6">
+          <div class="grid grid-cols-3 gap-3 pt-4 border-t border-slate-700">
+
+            <div class="text-center">
+              <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Amount</p>
+              <p class="text-sm font-semibold text-white">
+                <%= number_to_currency(plan.investment_amount_usd, precision: 2) %>
+              </p>
+            </div>
+
+            <div class="text-center border-x border-slate-700">
+              <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Daily Return</p>
+              <p class="text-sm font-semibold text-amber-400">
+                <%= number_to_percentage(plan.daily_return_rate, precision: 2) %>
+              </p>
+            </div>
+
+            <div class="text-center">
+              <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Duration</p>
+              <p class="text-sm font-semibold text-white">
+                <%= plan.duration_days %> Days
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    <% end %>
+  </div>
+
+<% else %>
+  <div class="bg-slate-800 border border-slate-700 rounded-lg px-6 py-8 text-center">
+    <p class="text-slate-400 text-sm">No investment plans are currently available.</p>
+  </div>
+<% end %>
