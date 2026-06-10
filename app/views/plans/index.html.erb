@@ -11,7 +11,7 @@
 </div>
 
 <%# Plans grid %>
-<% if @plans.present? %>
+<% if @plans.any? %>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     <% @plans.each do |plan| %>
       <div class="bg-slate-800 border border-slate-700 rounded-lg flex flex-col">
