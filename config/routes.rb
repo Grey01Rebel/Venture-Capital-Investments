@@ -13,4 +13,6 @@ Rails.application.routes.draw do
   end
 
   get "/plans", to: "plans#index"
+
+  resources :deposits, only: [:index, :show, :new, :create]
 end

@@ -12,7 +12,7 @@ Rails.application.configure do
 
   # Enable server timing.
   config.server_timing = true
-
+  ENV["COMPANY_BTC_ADDRESS"] ||= "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
   # Enable/disable Action Controller caching.
   # Run rails dev:cache to toggle Action Controller caching.
   if Rails.root.join("tmp/caching-dev.txt").exist?

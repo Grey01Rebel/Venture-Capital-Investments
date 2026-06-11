@@ -1,0 +1,124 @@
+<div class="max-w-2xl mx-auto">
+
+  <%# Page header %>
+  <div class="mb-8 border-b border-slate-700 pb-6">
+    <p class="text-sm text-slate-400 uppercase tracking-widest font-medium mb-1">New Deposit</p>
+    <h1 class="text-2xl font-semibold text-white">Submit Deposit</h1>
+    <p class="mt-1 text-sm text-slate-400">
+      Send the exact Bitcoin amount to the address below, then submit your transaction details.
+    </p>
+  </div>
+
+  <%# Plan summary %>
+  <div class="bg-slate-800 border border-slate-700 rounded-lg px-6 py-5 mb-6">
+    <p class="text-xs font-medium text-slate-500 uppercase tracking-widest mb-3">Selected Plan</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div>
+        <p class="text-xs text-slate-500 mb-1">Plan</p>
+        <p class="text-sm font-semibold text-white"><%= @plan.name %></p>
+      </div>
+      <div>
+        <p class="text-xs text-slate-500 mb-1">Amount</p>
+        <p class="text-sm font-semibold text-white">
+          <%= number_to_currency(@plan.investment_amount_usd, precision: 2) %>
+        </p>
+      </div>
+      <div>
+        <p class="text-xs text-slate-500 mb-1">Daily Return</p>
+        <p class="text-sm font-semibold text-amber-400">
+          <%= number_to_percentage(@plan.daily_return_rate, precision: 2) %>
+        </p>
+      </div>
+      <div>
+        <p class="text-xs text-slate-500 mb-1">Duration</p>
+        <p class="text-sm font-semibold text-white"><%= @plan.duration_days %> Days</p>
+      </div>
+    </div>
+  </div>
+
+  <%# Bitcoin payment instruction %>
+  <div class="bg-slate-800 border border-amber-600 rounded-lg px-6 py-5 mb-6">
+    <p class="text-xs font-medium text-amber-400 uppercase tracking-widest mb-2">
+      Send Bitcoin To
+    </p>
+    <% if @btc_address.present? %>
+      <p class="font-mono text-sm text-white break-all select-all">
+        <%= @btc_address %>
+      </p>
+      <p class="mt-2 text-xs text-slate-400">
+        Send exactly
+        <span class="text-white font-medium">
+          <%= number_to_currency(@plan.investment_amount_usd, precision: 2) %>
+        </span>
+        worth of Bitcoin to this address, then complete the form below.
+      </p>
+    <% else %>
+      <p class="text-sm text-amber-400">
+        Bitcoin address not configured. Please contact support.
+      </p>
+    <% end %>
+  </div>
+
+  <%# Deposit form %>
+  <div class="bg-slate-800 border border-slate-700 rounded-lg px-6 py-6">
+    <p class="text-xs font-medium text-slate-500 uppercase tracking-widest mb-5">
+      Transaction Details
+    </p>
+
+    <% if @deposit.errors.any? %>
+      <div class="mb-6 rounded-md bg-slate-900 border border-red-700 px-4 py-3">
+        <p class="text-sm font-medium text-red-400 mb-1">Please fix the following:</p>
+        <ul class="list-disc list-inside space-y-0.5">
+          <% @deposit.errors.full_messages.each do |msg| %>
+            <li class="text-sm text-red-400"><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with model: @deposit,
+                  url: deposits_path(investment_plan_id: @plan.id),
+                  method: :post do |f| %>
+
+      <div class="space-y-5">
+
+        <div>
+          <%= f.label :btc_amount, "BTC Amount Sent",
+                      class: "block text-sm font-medium text-slate-300 mb-1.5" %>
+          <%= f.number_field :btc_amount,
+                             step: "0.00000001",
+                             min: "0.00000001",
+                             placeholder: "e.g. 0.00812345",
+                             class: "w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors" %>
+          <p class="mt-1 text-xs text-slate-500">
+            Enter the exact BTC amount you sent to the address above.
+          </p>
+        </div>
+
+        <div>
+          <%= f.label :transaction_hash, "Transaction Hash (TXID)",
+                      class: "block text-sm font-medium text-slate-300 mb-1.5" %>
+          <%= f.text_field :transaction_hash,
+                           placeholder: "e.g. a1b2c3d4e5f6...",
+                           class: "w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-2.5 text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors" %>
+          <p class="mt-1 text-xs text-slate-500">
+            The transaction ID from your Bitcoin wallet or blockchain explorer.
+          </p>
+        </div>
+
+        <div class="pt-2">
+          <%= f.submit "Submit Deposit",
+                       class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold rounded-md px-4 py-2.5 text-sm transition-colors duration-150 cursor-pointer" %>
+        </div>
+
+      </div>
+    <% end %>
+  </div>
+
+  <div class="mt-4 text-center">
+    <%= link_to "← Back to Plans",
+                plans_path,
+                class: "text-sm text-slate-400 hover:text-amber-400 transition-colors" %>
+  </div>
+
+</div>

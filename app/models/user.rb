@@ -6,7 +6,8 @@ class User < ApplicationRecord
          :validatable,
          :confirmable
 
-  has_one :wallet, dependent: :destroy
+  has_one  :wallet,   dependent: :destroy
+  has_many :deposits, dependent: :destroy
 
   validates :full_name, presence: true, length: { maximum: 100 }
 

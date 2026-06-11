@@ -10,9 +10,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_09_225315) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_11_090217) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "deposits", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "investment_plan_id", null: false
+    t.decimal "amount_usd", precision: 12, scale: 2, null: false
+    t.decimal "btc_amount", precision: 20, scale: 8, null: false
+    t.string "transaction_hash", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "submitted_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["investment_plan_id"], name: "index_deposits_on_investment_plan_id"
+    t.index ["status"], name: "index_deposits_on_status"
+    t.index ["transaction_hash"], name: "index_deposits_on_transaction_hash", unique: true
+    t.index ["user_id"], name: "index_deposits_on_user_id"
+  end
 
   create_table "investment_plans", force: :cascade do |t|
     t.string "name", null: false
@@ -58,5 +74,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_09_225315) do
     t.index ["user_id"], name: "index_wallets_on_user_id", unique: true
   end
 
+  add_foreign_key "deposits", "investment_plans"
+  add_foreign_key "deposits", "users"
   add_foreign_key "wallets", "users"
 end
