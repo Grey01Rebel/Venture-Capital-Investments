@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_11_090217) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_11_101128) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -24,7 +24,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_090217) do
     t.datetime "submitted_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "approved_at"
+    t.datetime "rejected_at"
+    t.text "admin_notes"
+    t.bigint "reviewed_by_id"
+    t.index ["approved_at"], name: "index_deposits_on_approved_at"
     t.index ["investment_plan_id"], name: "index_deposits_on_investment_plan_id"
+    t.index ["rejected_at"], name: "index_deposits_on_rejected_at"
+    t.index ["reviewed_by_id"], name: "index_deposits_on_reviewed_by_id"
     t.index ["status"], name: "index_deposits_on_status"
     t.index ["transaction_hash"], name: "index_deposits_on_transaction_hash", unique: true
     t.index ["user_id"], name: "index_deposits_on_user_id"
@@ -58,9 +65,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_090217) do
     t.string "unconfirmed_email"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "role", default: 0, null: false
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["role"], name: "index_users_on_role"
   end
 
   create_table "wallets", force: :cascade do |t|
@@ -76,5 +85,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_090217) do
 
   add_foreign_key "deposits", "investment_plans"
   add_foreign_key "deposits", "users"
+  add_foreign_key "deposits", "users", column: "reviewed_by_id"
   add_foreign_key "wallets", "users"
 end

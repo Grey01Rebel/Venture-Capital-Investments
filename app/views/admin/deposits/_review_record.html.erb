@@ -1,0 +1,48 @@
+<div class="bg-slate-800 border border-slate-700 rounded-lg divide-y divide-slate-700">
+
+  <div class="px-6 py-4">
+    <p class="text-xs font-medium text-slate-500 uppercase tracking-widest mb-0.5">
+      Review Record
+    </p>
+    <p class="text-xs text-slate-500">
+      This deposit has been reviewed. The decision is final and cannot be changed.
+    </p>
+  </div>
+
+  <% if @deposit.reviewer.present? %>
+    <div class="px-6 py-4 flex justify-between items-center">
+      <span class="text-sm text-slate-400">Reviewed by</span>
+      <span class="text-sm font-medium text-white">
+        <%= @deposit.reviewer.full_name %>
+      </span>
+    </div>
+  <% end %>
+
+  <% if @deposit.approved_at.present? %>
+    <div class="px-6 py-4 flex justify-between items-center">
+      <span class="text-sm text-slate-400">Approved at</span>
+      <span class="text-sm text-white">
+        <%= @deposit.approved_at.strftime("%B %d, %Y at %H:%M UTC") %>
+      </span>
+    </div>
+  <% end %>
+
+  <% if @deposit.rejected_at.present? %>
+    <div class="px-6 py-4 flex justify-between items-center">
+      <span class="text-sm text-slate-400">Rejected at</span>
+      <span class="text-sm text-white">
+        <%= @deposit.rejected_at.strftime("%B %d, %Y at %H:%M UTC") %>
+      </span>
+    </div>
+  <% end %>
+
+  <div class="px-6 py-4">
+    <p class="text-sm text-slate-400 mb-1">Admin Notes</p>
+    <% if @deposit.admin_notes.present? %>
+      <p class="text-sm text-white"><%= @deposit.admin_notes %></p>
+    <% else %>
+      <p class="text-sm text-slate-500 italic">No notes recorded.</p>
+    <% end %>
+  </div>
+
+</div>

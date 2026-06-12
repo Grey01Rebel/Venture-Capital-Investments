@@ -22,6 +22,12 @@
     <%= link_to "My Deposits",
                 deposits_path,
                 class: "text-sm text-slate-300 hover:text-amber-400 transition-colors duration-150" %>
+    <% if current_user.admin? %>
+      <span class="text-slate-600">|</span>
+      <%= link_to "Admin",
+                  admin_deposits_path,
+                  class: "text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors duration-150" %>
+    <% end %>
     <span class="text-slate-600">|</span>
     <span class="text-slate-300 text-sm">
       <%= current_user.full_name %>

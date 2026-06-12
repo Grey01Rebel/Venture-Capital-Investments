@@ -4,7 +4,7 @@ class DepositPolicy < ApplicationPolicy
   end
 
   def show?
-    record.user_id == user.id
+    admin_or_owner?
   end
 
   def new?
@@ -15,9 +15,27 @@ class DepositPolicy < ApplicationPolicy
     true
   end
 
+  def approve?
+    user.admin?
+  end
+
+  def reject?
+    user.admin?
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
-      scope.where(user: user)
+      if user.admin?
+        scope.all
+      else
+        scope.where(user: user)
+      end
     end
+  end
+
+  private
+
+  def admin_or_owner?
+    user.admin? || record.user_id == user.id
   end
 end
