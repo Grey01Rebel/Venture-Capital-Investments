@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_11_101128) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_15_191253) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -52,6 +52,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_101128) do
     t.index ["position"], name: "index_investment_plans_on_position", unique: true
   end
 
+  create_table "investments", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "deposit_id", null: false
+    t.bigint "investment_plan_id", null: false
+    t.decimal "principal_amount", precision: 12, scale: 2, null: false
+    t.decimal "daily_return_rate", precision: 5, scale: 2, null: false
+    t.integer "duration_days", null: false
+    t.datetime "started_at", null: false
+    t.datetime "ends_at", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["deposit_id"], name: "index_investments_on_deposit_id", unique: true
+    t.index ["ends_at"], name: "index_investments_on_ends_at"
+    t.index ["investment_plan_id"], name: "index_investments_on_investment_plan_id"
+    t.index ["started_at"], name: "index_investments_on_started_at"
+    t.index ["status"], name: "index_investments_on_status"
+    t.index ["user_id"], name: "index_investments_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "full_name", default: "", null: false
     t.string "email", default: "", null: false
@@ -86,5 +106,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_11_101128) do
   add_foreign_key "deposits", "investment_plans"
   add_foreign_key "deposits", "users"
   add_foreign_key "deposits", "users", column: "reviewed_by_id"
+  add_foreign_key "investments", "deposits"
+  add_foreign_key "investments", "investment_plans"
+  add_foreign_key "investments", "users"
   add_foreign_key "wallets", "users"
 end

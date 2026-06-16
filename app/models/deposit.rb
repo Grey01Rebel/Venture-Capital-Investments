@@ -7,6 +7,8 @@ class Deposit < ApplicationRecord
              optional:    true,
              inverse_of:  :reviewed_deposits
 
+  has_one :investment, dependent: :restrict_with_exception
+
   enum :status, { pending: 0, approved: 1, rejected: 2 }, default: :pending
 
   validates :amount_usd,       presence: true,
@@ -18,21 +20,31 @@ class Deposit < ApplicationRecord
   validates :submitted_at,     presence: true
   validates :status,           presence: true
 
-  # Returns false if the deposit is not pending.
-  # Sets status to approved, records approved_at, reviewer, and optional notes.
   def approve!(reviewer:, notes: nil)
     return false unless pending?
 
-    update!(
-      status:       :approved,
-      approved_at:  Time.current,
-      reviewer:     reviewer,
-      admin_notes:  notes
-    )
+    investment_succeeded = false
+
+    transaction do
+      update!(
+        status:       :approved,
+        approved_at:  Time.current,
+        reviewer:     reviewer,
+        admin_notes:  notes
+      )
+
+      result = InvestmentCreationService.new(self).call
+
+      if result.success?
+        investment_succeeded = true
+      else
+        raise ActiveRecord::Rollback, result.error
+      end
+    end
+
+    investment_succeeded
   end
 
-  # Returns false if the deposit is not pending.
-  # Sets status to rejected, records rejected_at, reviewer, and optional notes.
   def reject!(reviewer:, notes: nil)
     return false unless pending?
 

@@ -14,7 +14,8 @@ Rails.application.routes.draw do
 
   get "/plans", to: "plans#index"
 
-  resources :deposits, only: [:index, :show, :new, :create]
+  resources :deposits,    only: [:index, :show, :new, :create]
+  resources :investments, only: [:index, :show]
 
   namespace :admin do
     resources :deposits, only: [:index, :show] do

@@ -1,5 +1,6 @@
 class InvestmentPlan < ApplicationRecord
-  has_many :deposits, dependent: :restrict_with_exception
+  has_many :deposits,    dependent: :restrict_with_exception
+  has_many :investments, dependent: :restrict_with_exception
 
   validates :name,                  presence: true, uniqueness: true
   validates :investment_amount_usd, presence: true,
