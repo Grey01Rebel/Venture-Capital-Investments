@@ -1,8 +1,9 @@
-# frozen_string_literal: true
 class Investment < ApplicationRecord
   belongs_to :user
   belongs_to :deposit
   belongs_to :investment_plan
+
+  has_many :profit_records, dependent: :restrict_with_exception
 
   enum :status, { active: 0, completed: 1 }, default: :active
 
@@ -17,18 +18,14 @@ class Investment < ApplicationRecord
   validates :status,            presence: true
   validates :deposit_id,        uniqueness: true
 
-  # Returns true if the investment is active.
   def active?
     status == "active"
   end
 
-  # Returns true if the investment is completed.
   def completed?
     status == "completed"
   end
 
-  # Marks the investment as completed.
-  # Safe to call repeatedly — returns false without side effects if already completed.
   def complete!
     return false if completed?
 
