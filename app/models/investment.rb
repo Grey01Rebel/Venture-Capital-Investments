@@ -7,6 +7,8 @@ class Investment < ApplicationRecord
 
   enum :status, { active: 0, completed: 1 }, default: :active
 
+  scope :active, -> { where(status: :active) }
+
   validates :principal_amount,  presence: true,
             numericality: { greater_than: 0 }
   validates :daily_return_rate, presence: true,
