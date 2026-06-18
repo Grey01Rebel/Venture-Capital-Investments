@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_17_202429) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_18_224103) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -64,6 +64,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_17_202429) do
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "completed_at"
+    t.index ["completed_at"], name: "index_investments_on_completed_at"
     t.index ["deposit_id"], name: "index_investments_on_deposit_id", unique: true
     t.index ["ends_at"], name: "index_investments_on_ends_at"
     t.index ["investment_plan_id"], name: "index_investments_on_investment_plan_id"
