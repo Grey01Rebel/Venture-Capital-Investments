@@ -55,6 +55,57 @@
 
   </div>
 
+  <%# Investment Overview %>
+  <div class="mb-10">
+    <p class="text-sm text-slate-400 uppercase tracking-widest font-medium mb-3">
+      Investment Overview
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div data-testid="active-investments-card" class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+          Active Investments
+        </p>
+        <p class="text-2xl font-semibold text-white">
+          <%= current_user.active_investments_count %>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">Currently earning daily profit</p>
+      </div>
+
+      <div data-testid="completed-investments-card" class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+          Completed Investments
+        </p>
+        <p class="text-2xl font-semibold text-white">
+          <%= current_user.completed_investments_count %>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">Investments that have matured</p>
+      </div>
+
+      <div data-testid="total-invested-capital-card" class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+          Total Invested Capital
+        </p>
+        <p class="text-2xl font-semibold text-white">
+          <%= number_to_currency(current_user.total_invested_capital, precision: 2) %>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">Principal across all investments</p>
+      </div>
+
+      <div data-testid="total-profit-earned-card" class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+          Total Profit Earned
+        </p>
+        <p class="text-2xl font-semibold text-amber-400">
+          <%= number_to_currency(current_user.total_profit_earned, precision: 2) %>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">Profit generated across all investments</p>
+      </div>
+
+    </div>
+  </div>
+
   <%# Account status strip %>
   <div class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-4 flex items-center justify-between">
     <div class="flex items-center gap-3">

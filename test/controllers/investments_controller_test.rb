@@ -94,6 +94,62 @@ class InvestmentsControllerTest < ActionDispatch::IntegrationTest
     assert_match @plan.name, response.body
   end
 
+  # --- Performance metrics ---
+
+  test "authorized user can view performance metrics on investment show" do
+    sign_in @member
+    get investment_path(@investment)
+    assert_response :success
+    assert_match "Investment Performance", response.body
+    assert_match "Total Profit Earned", response.body
+    assert_match "Days Paid", response.body
+    assert_match "Remaining Days", response.body
+  end
+
+  test "unauthorized user cannot view another user's investment performance" do
+    sign_in @member
+    get investment_path(@other_investment)
+    assert_response :redirect
+  end
+
+
+  test "investment show displays total profit earned" do
+    ProfitRecord.create!(
+      user:        @member,
+      investment:  @investment,
+      amount:      4.00,
+      profit_date: Date.current
+    )
+    sign_in @member
+    get investment_path(@investment)
+    assert_match number_to_currency(4.00), response.body
+  end
+
+  test "investment show displays correct days paid count" do
+    ProfitRecord.create!(
+      user:        @member,
+      investment:  @investment,
+      amount:      4.00,
+      profit_date: Date.current
+    )
+    ProfitRecord.create!(
+      user:        @member,
+      investment:  @investment,
+      amount:      4.00,
+      profit_date: Date.current - 1
+    )
+    sign_in @member
+    get investment_path(@investment)
+    assert_match "2", response.body
+  end
+
+  test "investment show displays remaining days" do
+    sign_in @member
+    get investment_path(@investment)
+    assert_match @investment.duration_days.to_s, response.body
+  end
+
+
   test "investment show displays principal amount" do
     sign_in @member
     get investment_path(@investment)

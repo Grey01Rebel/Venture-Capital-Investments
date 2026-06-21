@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_18_224103) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_21_213330) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -116,6 +116,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_18_224103) do
     t.index ["user_id"], name: "index_wallets_on_user_id", unique: true
   end
 
+  create_table "withdrawals", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "reviewer_id"
+    t.decimal "amount", precision: 20, scale: 8, null: false
+    t.string "btc_address", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "requested_at"
+    t.datetime "approved_at"
+    t.datetime "rejected_at"
+    t.datetime "completed_at"
+    t.text "admin_notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["reviewer_id"], name: "index_withdrawals_on_reviewer_id"
+    t.index ["status"], name: "index_withdrawals_on_status"
+    t.index ["user_id"], name: "index_withdrawals_on_user_id"
+  end
+
   add_foreign_key "deposits", "investment_plans"
   add_foreign_key "deposits", "users"
   add_foreign_key "deposits", "users", column: "reviewed_by_id"
@@ -125,4 +143,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_18_224103) do
   add_foreign_key "profit_records", "investments"
   add_foreign_key "profit_records", "users"
   add_foreign_key "wallets", "users"
+  add_foreign_key "withdrawals", "users"
+  add_foreign_key "withdrawals", "users", column: "reviewer_id"
 end

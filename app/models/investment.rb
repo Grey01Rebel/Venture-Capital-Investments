@@ -33,4 +33,21 @@ class Investment < ApplicationRecord
 
     update!(status: :completed)
   end
+
+  # --- Performance metrics, derived from associated profit_records ---
+
+  # Sum of all profit recorded against this investment.
+  def total_profit_earned
+    profit_records.sum(:amount)
+  end
+
+  # Number of distinct days profit has been recorded for this investment.
+  def days_paid
+    profit_records.count
+  end
+
+  # Days remaining in the investment term. Never negative.
+  def remaining_days
+    [duration_days - days_paid, 0].max
+  end
 end

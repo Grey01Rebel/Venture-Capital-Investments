@@ -17,6 +17,9 @@ Rails.application.routes.draw do
   resources :deposits,    only: [:index, :show, :new, :create]
   resources :investments, only: [:index, :show]
 
+  get "/profits", to: "profits#index"
+  get "/wallet_activity", to: "wallet_activities#index"
+
   namespace :admin do
     resources :deposits, only: [:index, :show] do
       member do

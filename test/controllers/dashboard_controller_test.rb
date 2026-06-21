@@ -21,7 +21,6 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "unauthenticated user is redirected to sign in" do
-    # Access a path protected by authenticate_user! without signing in
     get "/users/edit"
     assert_redirected_to new_user_session_path
   end
@@ -54,5 +53,38 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get authenticated_root_path
     assert_response :success
     assert_not_nil @user.wallet
+  end
+
+  # --- Investment Overview metrics ---
+
+  test "dashboard renders successfully with investment overview section" do
+    sign_in @user
+    get authenticated_root_path
+    assert_response :success
+    assert_match "Investment Overview", response.body
+  end
+
+  test "dashboard displays active investments metric" do
+    sign_in @user
+    get authenticated_root_path
+    assert_match "Active Investments", response.body
+  end
+
+  test "dashboard displays completed investments metric" do
+    sign_in @user
+    get authenticated_root_path
+    assert_match "Completed Investments", response.body
+  end
+
+  test "dashboard displays total invested capital metric" do
+    sign_in @user
+    get authenticated_root_path
+    assert_match "Total Invested Capital", response.body
+  end
+
+  test "dashboard displays total profit earned metric" do
+    sign_in @user
+    get authenticated_root_path
+    assert_match "Total Profit Earned", response.body
   end
 end

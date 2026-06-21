@@ -10,6 +10,7 @@ class User < ApplicationRecord
   has_many :deposits, dependent: :destroy
   has_many :investments,    dependent: :restrict_with_exception
   has_many :profit_records, dependent: :restrict_with_exception
+  has_many :withdrawals,    dependent: :restrict_with_exception
   has_many :reviewed_deposits,
            class_name:  "Deposit",
            foreign_key: :reviewed_by_id,
@@ -29,6 +30,22 @@ class User < ApplicationRecord
 
   def member?
     role == "member"
+  end
+
+  def active_investments_count
+    investments.active.count
+  end
+
+  def completed_investments_count
+    investments.where(status: :completed).count
+  end
+
+  def total_invested_capital
+    investments.sum(:principal_amount)
+  end
+
+  def total_profit_earned
+    profit_records.sum(:amount)
   end
 
   private

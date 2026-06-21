@@ -71,6 +71,62 @@
 
   </div>
 
+  <%# Performance section %>
+  <div class="mb-8">
+    <p class="text-sm text-slate-400 uppercase tracking-widest font-medium mb-3">
+      Investment Performance
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+
+      <div class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+          Total Profit Earned
+        </p>
+        <p class="text-2xl font-semibold text-amber-400">
+          <%= number_to_currency(@investment.total_profit_earned, precision: 2) %>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">Cumulative profit to date</p>
+      </div>
+
+      <div class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+          Days Paid
+        </p>
+        <p class="text-2xl font-semibold text-white">
+          <%= @investment.days_paid %> <span class="text-base text-slate-500">/ <%= @investment.duration_days %></span>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">Profit-bearing days recorded</p>
+      </div>
+
+      <div class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+          Remaining Days
+        </p>
+        <p class="text-2xl font-semibold text-white">
+          <%= @investment.remaining_days %>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">Days left in the term</p>
+      </div>
+
+    </div>
+
+    <%# Progress indicator — pure presentation, no business logic %>
+    <div class="bg-slate-800 border border-slate-700 rounded-lg px-5 py-4">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-xs text-slate-400">Term Progress</span>
+        <span class="text-xs text-slate-400">
+          <%= @investment.days_paid %> of <%= @investment.duration_days %> days
+        </span>
+      </div>
+      <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+        <% progress_percent = @investment.duration_days.zero? ? 0 : [(@investment.days_paid.to_f / @investment.duration_days * 100), 100].min %>
+        <div class="bg-amber-400 h-2 rounded-full transition-all duration-300"
+             style="width: <%= progress_percent %>%"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="mt-6 text-center">
     <%= link_to "← Back to My Investments",
                 investments_path,

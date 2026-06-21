@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 class InvestmentsController < ApplicationController
   def index
     @investments = policy_scope(Investment)
@@ -8,7 +7,7 @@ class InvestmentsController < ApplicationController
   end
 
   def show
-    @investment = Investment.find(params[:id])
+    @investment = Investment.includes(:profit_records).find(params[:id])
     authorize @investment
   end
 end

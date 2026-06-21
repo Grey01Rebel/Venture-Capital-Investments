@@ -13,7 +13,6 @@
 
 <body class="h-full bg-slate-900 text-white antialiased">
 
-<%# Navbar %>
 <% if user_signed_in? %>
   <div class="flex items-center gap-6">
     <%= link_to "Plans",
@@ -24,6 +23,12 @@
                 class: "text-sm text-slate-300 hover:text-amber-400 transition-colors duration-150" %>
     <%= link_to "My Investments",
                 investments_path,
+                class: "text-sm text-slate-300 hover:text-amber-400 transition-colors duration-150" %>
+    <%= link_to "My Profits",
+                profits_path,
+                class: "text-sm text-slate-300 hover:text-amber-400 transition-colors duration-150" %>
+    <%= link_to "Wallet Activity",
+                wallet_activity_path,
                 class: "text-sm text-slate-300 hover:text-amber-400 transition-colors duration-150" %>
     <% if current_user.admin? %>
       <span class="text-slate-600">|</span>
