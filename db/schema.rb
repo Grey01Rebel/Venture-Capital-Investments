@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_21_213330) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_23_234619) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -118,7 +118,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_21_213330) do
 
   create_table "withdrawals", force: :cascade do |t|
     t.bigint "user_id", null: false
-    t.bigint "reviewer_id"
+    t.bigint "reviewed_by_id"
     t.decimal "amount", precision: 20, scale: 8, null: false
     t.string "btc_address", null: false
     t.integer "status", default: 0, null: false
@@ -129,8 +129,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_21_213330) do
     t.text "admin_notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["reviewer_id"], name: "index_withdrawals_on_reviewer_id"
+    t.string "transaction_hash"
+    t.index ["reviewed_by_id"], name: "index_withdrawals_on_reviewed_by_id"
     t.index ["status"], name: "index_withdrawals_on_status"
+    t.index ["transaction_hash"], name: "index_withdrawals_on_transaction_hash", unique: true, where: "(transaction_hash IS NOT NULL)"
     t.index ["user_id"], name: "index_withdrawals_on_user_id"
   end
 
@@ -144,5 +146,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_21_213330) do
   add_foreign_key "profit_records", "users"
   add_foreign_key "wallets", "users"
   add_foreign_key "withdrawals", "users"
-  add_foreign_key "withdrawals", "users", column: "reviewer_id"
+  add_foreign_key "withdrawals", "users", column: "reviewed_by_id"
 end

@@ -16,6 +16,7 @@ Rails.application.routes.draw do
 
   resources :deposits,    only: [:index, :show, :new, :create]
   resources :investments, only: [:index, :show]
+  resources :withdrawals, only: [:index, :show, :new, :create]
 
   get "/profits", to: "profits#index"
   get "/wallet_activity", to: "wallet_activities#index"
@@ -25,6 +26,14 @@ Rails.application.routes.draw do
       member do
         patch :approve
         patch :reject
+      end
+    end
+
+    resources :withdrawals, only: [:index, :show] do
+      member do
+        patch :approve
+        patch :reject
+        patch :complete
       end
     end
   end

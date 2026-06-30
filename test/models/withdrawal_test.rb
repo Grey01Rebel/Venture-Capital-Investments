@@ -16,9 +16,9 @@ class WithdrawalTest < ActiveSupport::TestCase
 
   # --- valid record ---
 
-  test "creates a valid withdrawal with all required attributes" do
+  test "creates a valid withdrawals with all required attributes" do
     withdrawal = Withdrawal.new(valid_attributes)
-    assert withdrawal.valid?, "Expected withdrawal to be valid: #{withdrawal.errors.full_messages}"
+    assert withdrawal.valid?, "Expected withdrawals to be valid: #{withdrawal.errors.full_messages}"
   end
 
   # --- amount validations ---
@@ -74,10 +74,16 @@ class WithdrawalTest < ActiveSupport::TestCase
   end
 
   test "supports all four status values" do
-    %i[pending approved rejected completed].each do |status_value|
+    %i[pending approved rejected].each do |status_value|
       withdrawal = Withdrawal.create!(valid_attributes.merge(status: status_value))
       assert_equal status_value.to_s, withdrawal.status
     end
+
+    completed = Withdrawal.create!(valid_attributes.merge(
+      status:           :completed,
+      transaction_hash: "tx_#{SecureRandom.hex(16)}"
+    ))
+    assert_equal "completed", completed.status
   end
 
   # --- associations ---

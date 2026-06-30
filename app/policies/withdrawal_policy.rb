@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 class WithdrawalPolicy < ApplicationPolicy
   def index?
     true
@@ -6,6 +5,18 @@ class WithdrawalPolicy < ApplicationPolicy
 
   def show?
     user.admin? || record.user_id == user.id
+  end
+
+  def approve?
+    user.admin?
+  end
+
+  def reject?
+    user.admin?
+  end
+
+  def complete?
+    user.admin?
   end
 
   class Scope < ApplicationPolicy::Scope

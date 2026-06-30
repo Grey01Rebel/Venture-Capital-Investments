@@ -1,0 +1,148 @@
+<div class="max-w-2xl mx-auto">
+
+  <div class="mb-6 border-b border-slate-700 pb-6">
+    <p class="text-sm text-slate-400 uppercase tracking-widest font-medium mb-1">Admin / Withdrawals</p>
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-semibold text-white">Withdrawal #<%= @withdrawal.id %></h1>
+      <%= render "withdrawals/status_badge", withdrawal: @withdrawal %>
+    </div>
+  </div>
+
+  <%# Core withdrawal details %>
+  <div class="bg-slate-800 border border-slate-700 rounded-lg divide-y divide-slate-700 mb-6">
+    <div class="px-6 py-4 flex justify-between items-center">
+      <span class="text-sm text-slate-400">User</span>
+      <span class="text-sm text-white"><%= @withdrawal.user.full_name %></span>
+    </div>
+    <div class="px-6 py-4 flex justify-between items-center">
+      <span class="text-sm text-slate-400">Amount</span>
+      <span class="text-sm font-medium text-white">
+        <%= number_with_precision(@withdrawal.amount, precision: 8) %> BTC
+      </span>
+    </div>
+    <div class="px-6 py-4 flex justify-between items-start">
+      <span class="text-sm text-slate-400">BTC Address</span>
+      <span class="text-sm text-white font-mono break-all text-right max-w-xs">
+        <%= @withdrawal.btc_address %>
+      </span>
+    </div>
+    <div class="px-6 py-4 flex justify-between items-center">
+      <span class="text-sm text-slate-400">Requested</span>
+      <span class="text-sm text-white">
+        <%= @withdrawal.requested_at.strftime("%B %d, %Y at %H:%M UTC") %>
+      </span>
+    </div>
+    <% if @withdrawal.transaction_hash.present? %>
+      <div class="px-6 py-4 flex justify-between items-start">
+        <span class="text-sm text-slate-400">Transaction Hash</span>
+        <span class="text-sm text-white font-mono break-all text-right max-w-xs">
+          <%= @withdrawal.transaction_hash %>
+        </span>
+      </div>
+    <% end %>
+    <% if @withdrawal.completed_at.present? %>
+      <div class="px-6 py-4 flex justify-between items-center">
+        <span class="text-sm text-slate-400">Completed</span>
+        <span class="text-sm text-white">
+          <%= @withdrawal.completed_at.strftime("%B %d, %Y at %H:%M UTC") %>
+        </span>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @withdrawal.pending? %>
+    <%# Approve action %>
+    <div class="bg-slate-800 border border-slate-700 rounded-lg px-6 py-5 mb-4">
+      <h2 class="text-sm font-semibold text-white mb-3">Approve Withdrawal</h2>
+      <form action="<%= approve_admin_withdrawal_path(@withdrawal) %>" method="post">
+        <%= hidden_field_tag :_method, "patch" %>
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <div class="mb-3">
+          <label class="block text-xs text-slate-400 mb-1">Admin Notes (optional)</label>
+          <textarea name="admin_notes" rows="2"
+            class="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            placeholder="Optional notes..."></textarea>
+        </div>
+        <button type="submit"
+          class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold rounded-md px-5 py-2 text-sm transition-colors">
+          Approve Withdrawal
+        </button>
+      </form>
+    </div>
+
+    <%# Reject action %>
+    <div class="bg-slate-800 border border-slate-700 rounded-lg px-6 py-5">
+      <h2 class="text-sm font-semibold text-white mb-3">Reject Withdrawal</h2>
+      <form action="<%= reject_admin_withdrawal_path(@withdrawal) %>" method="post">
+        <%= hidden_field_tag :_method, "patch" %>
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <div class="mb-3">
+          <label class="block text-xs text-slate-400 mb-1">Admin Notes (optional)</label>
+          <textarea name="admin_notes" rows="2"
+            class="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            placeholder="Reason for rejection..."></textarea>
+        </div>
+        <button type="submit"
+          class="bg-red-600 hover:bg-red-500 text-white font-semibold rounded-md px-5 py-2 text-sm transition-colors">
+          Reject Withdrawal
+        </button>
+      </form>
+    </div>
+
+  <% elsif @withdrawal.approved? %>
+    <%# Complete action %>
+    <div class="bg-slate-800 border border-slate-700 rounded-lg px-6 py-5 mb-4">
+      <h2 class="text-sm font-semibold text-white mb-3">Mark as Completed</h2>
+      <p class="text-xs text-slate-400 mb-3">
+        Enter the Bitcoin transaction hash after the payout has been sent.
+      </p>
+      <form action="<%= complete_admin_withdrawal_path(@withdrawal) %>" method="post">
+        <%= hidden_field_tag :_method, "patch" %>
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+        <div class="mb-3">
+          <label class="block text-xs text-slate-400 mb-1">Transaction Hash</label>
+          <input type="text" name="transaction_hash"
+            class="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-white font-mono placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            placeholder="e.g. a1b2c3d4e5f6...">
+        </div>
+        <button type="submit"
+          class="bg-green-600 hover:bg-green-500 text-white font-semibold rounded-md px-5 py-2 text-sm transition-colors">
+          Complete Withdrawal
+        </button>
+      </form>
+    </div>
+
+  <% else %>
+    <%# Read-only review record (rejected or completed) %>
+    <div class="bg-slate-800 border border-slate-700 rounded-lg divide-y divide-slate-700">
+      <div class="px-6 py-4 flex justify-between items-center">
+        <span class="text-sm text-slate-400">Reviewed By</span>
+        <span class="text-sm text-white">
+          <%= @withdrawal.reviewer&.full_name || "—" %>
+        </span>
+      </div>
+      <% reviewed_at = @withdrawal.approved_at || @withdrawal.rejected_at %>
+      <% if reviewed_at %>
+        <div class="px-6 py-4 flex justify-between items-center">
+          <span class="text-sm text-slate-400">Reviewed At</span>
+          <span class="text-sm text-white">
+            <%= reviewed_at.strftime("%B %d, %Y at %H:%M UTC") %>
+          </span>
+        </div>
+      <% end %>
+      <% if @withdrawal.admin_notes.present? %>
+        <div class="px-6 py-4">
+          <span class="text-sm text-slate-400 block mb-1">Admin Notes</span>
+          <span class="text-sm text-white"><%= @withdrawal.admin_notes %></span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="mt-6 text-center">
+    <%= link_to "← Back to Withdrawals",
+          admin_withdrawals_path,
+          class: "text-sm text-slate-400 hover:text-amber-400 transition-colors" %>
+  </div>
+
+</div>

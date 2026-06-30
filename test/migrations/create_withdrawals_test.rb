@@ -10,10 +10,10 @@ class CreateWithdrawalsMigrationTest < ActiveSupport::TestCase
     columns = ActiveRecord::Base.connection.columns(:withdrawals).map(&:name)
 
     %w[
-      user_id reviewer_id amount btc_address status
-      requested_at approved_at rejected_at completed_at
-      admin_notes created_at updated_at
-    ].each do |expected_column|
+    user_id reviewed_by_id amount btc_address status
+    requested_at approved_at rejected_at completed_at
+    admin_notes created_at updated_at
+  ].each do |expected_column|
       assert_includes columns, expected_column, "Expected withdrawals table to have column: #{expected_column}"
     end
   end
@@ -34,8 +34,8 @@ class CreateWithdrawalsMigrationTest < ActiveSupport::TestCase
     assert_not column.null
   end
 
-  test "reviewer_id is nullable" do
-    column = ActiveRecord::Base.connection.columns(:withdrawals).find { |c| c.name == "reviewer_id" }
+  test "reviewed_by_id is nullable" do
+    column = ActiveRecord::Base.connection.columns(:withdrawals).find { |c| c.name == "reviewed_by_id" }
     assert column.null
   end
 

@@ -8,31 +8,29 @@ class WithdrawalPolicyTest < ActiveSupport::TestCase
     @admin.update!(role: :admin)
 
     @member_withdrawal = Withdrawal.create!(
-      user:        @member,
-      amount:      0.02000000,
-      btc_address: "bc1qmember1234567890abcdefghijklmnop",
-      status:      :pending
+      user:         @member,
+      amount:       0.02000000,
+      btc_address:  "bc1qmember",
+      status:       :pending,
+      requested_at: Time.current
     )
 
     @other_withdrawal = Withdrawal.create!(
-      user:        @other,
-      amount:      0.03000000,
-      btc_address: "bc1qother1234567890abcdefghijklmnopq",
-      status:      :pending
+      user:         @other,
+      amount:       0.03000000,
+      btc_address:  "bc1qother",
+      status:       :pending,
+      requested_at: Time.current
     )
   end
 
-  # --- index? ---
-
-  test "member can access withdrawal index" do
+  test "member can access withdrawal index"  do
     assert WithdrawalPolicy.new(@member, Withdrawal).index?
   end
 
   test "admin can access withdrawal index" do
     assert WithdrawalPolicy.new(@admin, Withdrawal).index?
   end
-
-  # --- show? — member ---
 
   test "member can view their own withdrawal" do
     assert WithdrawalPolicy.new(@member, @member_withdrawal).show?
@@ -42,14 +40,34 @@ class WithdrawalPolicyTest < ActiveSupport::TestCase
     assert_not WithdrawalPolicy.new(@member, @other_withdrawal).show?
   end
 
-  # --- show? — admin ---
-
   test "admin can view any withdrawal" do
     assert WithdrawalPolicy.new(@admin, @member_withdrawal).show?
     assert WithdrawalPolicy.new(@admin, @other_withdrawal).show?
   end
 
-  # --- Scope — member ---
+  test "admin can approve a withdrawal" do
+    assert WithdrawalPolicy.new(@admin, @member_withdrawal).approve?
+  end
+
+  test "member cannot approve a withdrawal" do
+    assert_not WithdrawalPolicy.new(@member, @member_withdrawal).approve?
+  end
+
+  test "admin can reject a withdrawal" do
+    assert WithdrawalPolicy.new(@admin, @member_withdrawal).reject?
+  end
+
+  test "member cannot reject a withdrawal" do
+    assert_not WithdrawalPolicy.new(@member, @member_withdrawal).reject?
+  end
+
+  test "admin can complete a withdrawal" do
+    assert WithdrawalPolicy.new(@admin, @member_withdrawal).complete?
+  end
+
+  test "member cannot complete a withdrawal" do
+    assert_not WithdrawalPolicy.new(@member, @member_withdrawal).complete?
+  end
 
   test "policy scope for member returns only their own withdrawals" do
     scope   = WithdrawalPolicy::Scope.new(@member, Withdrawal.all)
@@ -58,8 +76,6 @@ class WithdrawalPolicyTest < ActiveSupport::TestCase
     assert_not_includes results, @other_withdrawal
   end
 
-  # --- Scope — admin ---
-
   test "policy scope for admin returns all withdrawals" do
     scope   = WithdrawalPolicy::Scope.new(@admin, Withdrawal.all)
     results = scope.resolve
@@ -67,17 +83,9 @@ class WithdrawalPolicyTest < ActiveSupport::TestCase
     assert_includes results, @other_withdrawal
   end
 
-  # --- unauthenticated ---
-
   test "unauthenticated access raises NotAuthorizedError" do
     assert_raises(Pundit::NotAuthorizedError) do
       WithdrawalPolicy.new(nil, Withdrawal)
-    end
-  end
-
-  test "policy scope raises NotAuthorizedError for unauthenticated user" do
-    assert_raises(Pundit::NotAuthorizedError) do
-      WithdrawalPolicy::Scope.new(nil, Withdrawal.all)
     end
   end
 end

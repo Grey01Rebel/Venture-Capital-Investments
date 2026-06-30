@@ -17,6 +17,12 @@ class User < ApplicationRecord
            dependent:   :nullify,
            inverse_of:  :reviewer
 
+  has_many :reviewed_withdrawals,
+           class_name:  "Withdrawal",
+           foreign_key: :reviewed_by_id,
+           dependent:   :nullify,
+           inverse_of:  :reviewer
+
   enum :role, { member: 0, admin: 1 }, default: :member
 
   validates :full_name, presence: true, length: { maximum: 100 }
