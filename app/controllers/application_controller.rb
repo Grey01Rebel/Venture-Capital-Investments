@@ -1,4 +1,5 @@
 class ApplicationController < ActionController::Base
+  include Pagy::Backend
   include Pundit::Authorization
 
   before_action :authenticate_user!
@@ -8,7 +9,6 @@ class ApplicationController < ActionController::Base
   private
 
   def user_not_authorized
-    flash[:alert] = "You are not authorized to perform this action."
-    redirect_back(fallback_location: root_path)
+    redirect_to authenticated_root_path, alert: "You are not authorised to perform that action."
   end
 end

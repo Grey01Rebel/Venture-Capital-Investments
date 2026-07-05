@@ -1,24 +1,26 @@
 class Deposit < ApplicationRecord
   belongs_to :user
   belongs_to :investment_plan
-  belongs_to :reviewer,
-             class_name:  "User",
-             foreign_key: :reviewed_by_id,
-             optional:    true,
-             inverse_of:  :reviewed_deposits
-
+  belongs_to :reviewer, class_name: "User", foreign_key: :reviewed_by_id, optional: true
   has_one :investment, dependent: :restrict_with_exception
 
   enum :status, { pending: 0, approved: 1, rejected: 2 }, default: :pending
 
-  validates :amount_usd,       presence: true,
-            numericality: { greater_than: 0 }
-  validates :btc_amount,       presence: true,
-            numericality: { greater_than: 0 }
-  validates :transaction_hash, presence: true,
-            uniqueness: { case_insensitive: false }
-  validates :submitted_at,     presence: true
-  validates :status,           presence: true
+  validates :amount_usd,        presence: true, numericality: { greater_than: 0 }
+  validates :btc_amount,        presence: true, numericality: { greater_than: 0 }
+  validates :transaction_hash,  presence: true, uniqueness: true
+  validates :submitted_at,      presence: true
+  validates :status,            presence: true
+
+  scope :search_by_term, ->(term) {
+    return all if term.blank?
+    sanitized = "%#{sanitize_sql_like(term.strip)}%"
+    joins(:user)
+      .where(
+        "users.full_name ILIKE :term OR users.email ILIKE :term OR deposits.transaction_hash ILIKE :term",
+        term: sanitized
+      )
+  }
 
   def approve!(reviewer:, notes: nil)
     return false unless pending?

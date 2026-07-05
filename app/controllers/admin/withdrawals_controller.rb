@@ -3,9 +3,14 @@ class Admin::WithdrawalsController < Admin::BaseController
 
   def index
     @status_filter = params[:status].presence_in(%w[pending approved rejected completed]) || "pending"
-    @withdrawals   = Withdrawal.where(status: @status_filter)
-                               .includes(:user)
-                               .order(requested_at: :asc)
+    @search        = params[:search].to_s.strip
+    @pagy, @withdrawals = pagy(
+      Withdrawal.where(status: @status_filter)
+                .search_by_term(@search)
+                .includes(:user)
+                .order(requested_at: :asc),
+      items: 20
+    )
   end
 
   def show

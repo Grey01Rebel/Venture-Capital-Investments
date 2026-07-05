@@ -7,14 +7,21 @@ class Investment < ApplicationRecord
 
   enum :status, { active: 0, completed: 1 }, default: :active
 
-  scope :active, -> { where(status: :active) }
+  scope :active,        -> { where(status: :active) }
+  scope :by_status,     ->(status) { status.present? ? where(status: status) : all }
+  scope :search_by_term, ->(term) {
+    return all if term.blank?
+    sanitized = "%#{sanitize_sql_like(term.strip)}%"
+    joins(:user, :investment_plan)
+      .where(
+        "users.full_name ILIKE :term OR users.email ILIKE :term OR investment_plans.name ILIKE :term",
+        term: sanitized
+      )
+  }
 
-  validates :principal_amount,  presence: true,
-            numericality: { greater_than: 0 }
-  validates :daily_return_rate, presence: true,
-            numericality: { greater_than: 0 }
-  validates :duration_days,     presence: true,
-            numericality: { greater_than: 0, only_integer: true }
+  validates :principal_amount,  presence: true, numericality: { greater_than: 0 }
+  validates :daily_return_rate, presence: true, numericality: { greater_than: 0 }
+  validates :duration_days,     presence: true, numericality: { greater_than: 0, only_integer: true }
   validates :started_at,        presence: true
   validates :ends_at,           presence: true
   validates :status,            presence: true
@@ -30,23 +37,17 @@ class Investment < ApplicationRecord
 
   def complete!
     return false if completed?
-
     update!(status: :completed)
   end
 
-  # --- Performance metrics, derived from associated profit_records ---
-
-  # Sum of all profit recorded against this investment.
   def total_profit_earned
     profit_records.sum(:amount)
   end
 
-  # Number of distinct days profit has been recorded for this investment.
   def days_paid
     profit_records.count
   end
 
-  # Days remaining in the investment term. Never negative.
   def remaining_days
     [duration_days - days_paid, 0].max
   end

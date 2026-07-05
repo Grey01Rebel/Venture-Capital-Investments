@@ -12,11 +12,15 @@ class WithdrawalRequestService
 
     wallet = @user.wallet
     return failure("Wallet not found.") if wallet.nil? || wallet.destroyed?
-    return failure("Insufficient balance.") if @amount > wallet.available_balance
 
     withdrawal = nil
 
-    ActiveRecord::Base.transaction do
+    # Acquire a row-level lock on the wallet before reading or writing the
+    # balance. This prevents concurrent submissions from both passing the
+    # balance check against a stale value and then both debiting the same funds.
+    wallet.with_lock do
+      return failure("Insufficient balance.") if @amount > wallet.available_balance
+
       withdrawal = Withdrawal.create!(
         user:         @user,
         amount:       @amount,

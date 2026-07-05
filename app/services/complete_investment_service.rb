@@ -13,7 +13,12 @@ class CompleteInvestmentService
     wallet = @investment.user.wallet
     return failure("User wallet not found.") if wallet.nil?
 
-    ActiveRecord::Base.transaction do
+    # Acquire a row-level lock on the wallet before returning the principal.
+    # CompleteInvestmentsJob may process multiple investments concurrently,
+    # or run alongside other wallet-mutating services. The lock ensures that
+    # the principal credit cannot interleave with profit generation or
+    # withdrawal processing for the same user.
+    wallet.with_lock do
       @investment.update!(
         status:       :completed,
         completed_at: Time.current

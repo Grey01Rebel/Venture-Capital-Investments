@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 class WithdrawalReviewService
   Result = Struct.new(:success?, :withdrawal, :error, keyword_init: true)
 
@@ -22,6 +21,8 @@ class WithdrawalReviewService
   private
 
   def perform_approval
+    # Approval does not mutate the wallet — funds were reserved at submission.
+    # No locking required here.
     @withdrawal.update!(
       status:       :approved,
       approved_at:  Time.current,
@@ -38,7 +39,10 @@ class WithdrawalReviewService
     wallet = @withdrawal.user.wallet
     return failure("User wallet not found.") if wallet.nil? || wallet.destroyed?
 
-    ActiveRecord::Base.transaction do
+    # Acquire a row-level lock on the wallet before crediting the reserved funds
+    # back. This prevents a concurrent rejection of a different withdrawal for
+    # the same user from reading a stale balance and producing an incorrect total.
+    wallet.with_lock do
       @withdrawal.update!(
         status:       :rejected,
         rejected_at:  Time.current,

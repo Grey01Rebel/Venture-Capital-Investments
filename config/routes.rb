@@ -18,10 +18,12 @@ Rails.application.routes.draw do
   resources :investments, only: [:index, :show]
   resources :withdrawals, only: [:index, :show, :new, :create]
 
-  get "/profits", to: "profits#index"
+  get "/profits",         to: "profits#index"
   get "/wallet_activity", to: "wallet_activities#index"
 
   namespace :admin do
+    root "dashboard#index"
+
     resources :deposits, only: [:index, :show] do
       member do
         patch :approve
@@ -36,5 +38,7 @@ Rails.application.routes.draw do
         patch :complete
       end
     end
+
+    resources :investments, only: [:index]
   end
 end

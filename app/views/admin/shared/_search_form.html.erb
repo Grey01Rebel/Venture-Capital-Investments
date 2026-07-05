@@ -1,0 +1,19 @@
+<form method="get" action="<%= url %>" class="flex gap-3 mb-4 items-center">
+  <% if status_filter.present? %>
+    <input type="hidden" name="status" value="<%= status_filter %>">
+  <% end %>
+  <input type="text"
+         name="search"
+         value="<%= current_search %>"
+         placeholder="<%= placeholder %>"
+         class="flex-1 bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400">
+  <button type="submit"
+          class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold rounded-md px-4 py-2 text-sm transition-colors">
+    Search
+  </button>
+  <% if current_search.present? %>
+    <%= link_to "Clear",
+                url + (status_filter.present? ? "?status=#{status_filter}" : ""),
+                class: "text-sm text-slate-400 hover:text-amber-400 transition-colors" %>
+  <% end %>
+</form>

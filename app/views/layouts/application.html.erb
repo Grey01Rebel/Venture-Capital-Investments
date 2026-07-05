@@ -35,11 +35,17 @@
                 class: "text-sm text-slate-300 hover:text-amber-400 transition-colors duration-150" %>
     <% if current_user.admin? %>
       <span class="text-slate-600">|</span>
+      <%= link_to "Admin Dashboard",
+                  admin_root_path,
+                  class: "text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors duration-150" %>
       <%= link_to "Admin Deposits",
                   admin_deposits_path,
                   class: "text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors duration-150" %>
       <%= link_to "Admin Withdrawals",
                   admin_withdrawals_path,
+                  class: "text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors duration-150" %>
+      <%= link_to "Admin Investments",
+                  admin_investments_path,
                   class: "text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors duration-150" %>
     <% end %>
     <span class="text-slate-600">|</span>

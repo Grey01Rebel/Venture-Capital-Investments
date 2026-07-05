@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 class GenerateDailyProfitService
   Result = Struct.new(:success?, :profit_record, :error, keyword_init: true)
 
@@ -15,10 +14,13 @@ class GenerateDailyProfitService
     return failure("User wallet not found.") if wallet.nil?
 
     profit_amount = calculate_daily_profit
-
     profit_record = nil
 
-    ActiveRecord::Base.transaction do
+    # Acquire a row-level lock on the wallet before crediting profit.
+    # GenerateDailyProfitsJob processes investments sequentially but may run
+    # concurrently with other jobs or admin actions. The lock ensures that
+    # available_balance and total_profit are always read and written atomically.
+    wallet.with_lock do
       profit_record = ProfitRecord.create!(
         user:        @investment.user,
         investment:  @investment,
