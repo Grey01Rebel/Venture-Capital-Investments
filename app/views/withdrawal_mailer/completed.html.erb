@@ -1,0 +1,20 @@
+<h1>Your withdrawal has been completed</h1>
+
+<p>Hi <%= @user.full_name %>,</p>
+
+<p>
+  Your withdrawal of <%= @withdrawal.amount %> BTC to
+  <code><%= @withdrawal.btc_address %></code> has been sent and is now complete.
+</p>
+
+<ul>
+  <li>Transaction hash: <%= @withdrawal.transaction_hash %></li>
+  <li>Completed at: <%= @withdrawal.completed_at %></li>
+</ul>
+
+<p>
+  You can view your wallet activity at any time:
+  <%= link_to "View wallet activity", wallet_activity_url %>
+</p>
+
+<p>Thank you for investing with us.</p>

@@ -44,6 +44,8 @@ class DepositReviewService
     if error_message
       failure(error_message)
     else
+      @deposit.reload
+      DepositMailer.approved(@deposit).deliver_later
       Result.new(success?: true, deposit: @deposit, error: nil)
     end
   rescue ActiveRecord::RecordInvalid => e
@@ -52,6 +54,7 @@ class DepositReviewService
 
   def perform_rejection
     if @deposit.reject!(reviewer: @reviewer, notes: @admin_notes)
+      DepositMailer.rejected(@deposit).deliver_later
       Result.new(success?: true, deposit: @deposit, error: nil)
     else
       failure("Deposit could not be rejected.")

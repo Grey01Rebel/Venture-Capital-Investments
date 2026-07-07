@@ -17,6 +17,8 @@ class CompleteWithdrawalService
       transaction_hash: @transaction_hash
     )
 
+    WithdrawalMailer.completed(@withdrawal).deliver_later
+
     Result.new(success?: true, withdrawal: @withdrawal, error: nil)
   rescue ActiveRecord::RecordInvalid => e
     failure(e.record.errors.full_messages.to_sentence)

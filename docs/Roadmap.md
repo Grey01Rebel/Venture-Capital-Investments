@@ -262,8 +262,14 @@ This milestone improves communication without changing financial workflows.
 
 Before adding deposit notification emails, the deposit review workflow was refactored to comply with ADR-013 (see `docs/Decisions.md`, ADR-015): `DepositReviewService` now owns approval/rejection orchestration, and `Deposit#approve!`/`#reject!` are reduced to pure state transitions. This gives the upcoming `DepositMailer` a proper, service-level place to hook into via `deliver_later`, matching how `WithdrawalReviewService` already owns the withdrawal workflow.
 
-Refactor status: ✅ complete, pending full test suite confirmation.
-`DepositMailer` (approved/rejected notifications): ⏳ pending.
+Refactor status: ✅ complete, confirmed by full test suite (625 unit/integration + 111 system tests, all passing).
+`DepositMailer` (approved/rejected notifications): ✅ implemented and verified (633 unit/integration + 111 system tests, all passing).
+
+### Phase 2 — Withdrawal Notifications
+
+Scoped to the completion transition only (see `docs/Decisions.md`, ADR-016) — approval and rejection are administrative steps, not the moment funds actually move. No orchestration refactor was needed: `CompleteWithdrawalService` already owned the completion transition, so `WithdrawalMailer#completed` was wired directly into it via `deliver_later`.
+
+Status: ✅ implemented, pending test confirmation.
 
 ---
 

@@ -1,0 +1,12 @@
+Your withdrawal has been completed
+
+Hi <%= @user.full_name %>,
+
+Your withdrawal of <%= @withdrawal.amount %> BTC to <%= @withdrawal.btc_address %> has been sent and is now complete.
+
+Transaction hash: <%= @withdrawal.transaction_hash %>
+Completed at:      <%= @withdrawal.completed_at %>
+
+View your wallet activity: <%= wallet_activity_url %>
+
+Thank you for investing with us.

@@ -87,11 +87,13 @@ Handles administrator approval and rejection of a deposit.
 - transitions the deposit to approved via `Deposit#approve!`
 - invokes `InvestmentCreationService` to create the resulting investment
 - rolls back the approval if investment creation fails, leaving the deposit pending
+- enqueues `DepositMailer#approved` via `deliver_later` after the transaction commits
 
 ### Rejection
 
 - transitions the deposit to rejected via `Deposit#reject!`
 - performs no wallet or investment mutation
+- enqueues `DepositMailer#rejected` via `deliver_later`
 
 ### Does Not
 
@@ -240,6 +242,7 @@ Marks an approved withdrawal as completed.
 - validates approval status
 - validates transaction hash
 - records completion
+- enqueues `WithdrawalMailer#completed` via `deliver_later`
 - stores blockchain transaction hash
 
 No wallet mutation occurs.

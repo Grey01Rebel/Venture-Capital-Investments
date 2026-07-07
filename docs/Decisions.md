@@ -457,6 +457,26 @@ The deposit workflow is now consistent with ADR-013 and with the withdrawal revi
 
 ---
 
+# ADR-016: Withdrawal Notifications Are Scoped to Completion Only
+
+## Status
+
+Accepted
+
+## Context
+
+Withdrawals move through pending → approved/rejected → completed. Deposit notifications (ADR-015) cover both terminal review outcomes, but a withdrawal's approval is an internal administrative step, not a change the member's funds have actually undergone — the funds were already reserved at submission time. Completion is the point at which BTC actually leaves the platform.
+
+## Decision
+
+Only the pending → completed transition sends an email, via `WithdrawalMailer#completed`, triggered from `CompleteWithdrawalService`. Approval and rejection do not send notifications in this milestone.
+
+## Consequences
+
+Members are notified about the event with real financial consequence — money moving — without added noise for an intermediate administrative step. If member feedback later shows rejection notifications are needed (e.g. to explain why reserved funds were returned), that can be added to `WithdrawalReviewService` without revisiting this decision for completion.
+
+---
+
 # Decision Process
 
 New architectural decisions should be documented when they:

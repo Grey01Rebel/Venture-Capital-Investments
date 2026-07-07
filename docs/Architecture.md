@@ -186,6 +186,16 @@ Unexpected failures are allowed to raise naturally.
 
 ---
 
+# Mailers
+
+Transactional emails are dispatched from services, never from models or controllers.
+
+A service that owns a state transition (for example `DepositReviewService`) enqueues the corresponding mailer via `deliver_later` only after its transaction has committed successfully. This avoids a background job attempting to reference a record that never persisted.
+
+Mailers themselves contain no business logic — they read already-decided state off the record they're given and render it.
+
+---
+
 # Policies
 
 Authorization uses Pundit.

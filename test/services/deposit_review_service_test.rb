@@ -2,6 +2,8 @@
 require "test_helper"
 
 class DepositReviewServiceTest < ActiveSupport::TestCase
+  include ActionMailer::TestHelper
+
   def setup
     @admin  = create_confirmed_user
     @admin.update!(role: :admin)
@@ -67,6 +69,12 @@ class DepositReviewServiceTest < ActiveSupport::TestCase
     assert_equal @deposit, @deposit.reload.investment.deposit
   end
 
+  test "enqueues an approval notification email on success" do
+    assert_enqueued_email_with DepositMailer, :approved, args: [@deposit] do
+      call_service(action: :approve)
+    end
+  end
+
   # --- rejection path ---
 
   test "rejects a pending deposit" do
@@ -92,6 +100,12 @@ class DepositReviewServiceTest < ActiveSupport::TestCase
 
   test "does not create an investment on rejection" do
     assert_no_difference "Investment.count" do
+      call_service(action: :reject)
+    end
+  end
+
+  test "enqueues a rejection notification email on success" do
+    assert_enqueued_email_with DepositMailer, :rejected, args: [@deposit] do
       call_service(action: :reject)
     end
   end
@@ -144,5 +158,22 @@ class DepositReviewServiceTest < ActiveSupport::TestCase
 
     assert_not result.success?
     assert @deposit.reload.pending?
+  end
+
+  test "does not enqueue an approval email when investment creation fails" do
+    Investment.create!(
+      user:              @member,
+      deposit:           @deposit,
+      investment_plan:   @plan,
+      principal_amount:  500.00,
+      daily_return_rate: 0.80,
+      duration_days:     14,
+      started_at:        Time.current,
+      ends_at:           14.days.from_now
+    )
+
+    assert_no_enqueued_emails do
+      call_service(action: :approve)
+    end
   end
 end
