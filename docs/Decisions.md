@@ -431,6 +431,32 @@ Architectural quality is maintained as the application grows.
 
 ---
 
+# ADR-015: Deposit Review Extracted Into DepositReviewService
+
+## Status
+
+Accepted
+
+## Context
+
+`Deposit#approve!` and `Deposit#reject!` originally orchestrated the full approval workflow directly on the model: transitioning status, opening a transaction, invoking `InvestmentCreationService`, and rolling back on failure. This violated ADR-013 (services own financial state transitions) by placing workflow orchestration in the model rather than a dedicated service, and left `Deposit` responsible for both its own state and the resulting investment's creation.
+
+This became a blocker to Milestone 11 (Communication): notification delivery is a workflow-level concern, and the model was not an appropriate place to add it.
+
+## Decision
+
+`DepositReviewService` now owns the deposit review workflow, mirroring the existing `WithdrawalReviewService`.
+
+- `Deposit#approve!` and `Deposit#reject!` are reduced to pure state transitions: they update status, timestamps, reviewer, and notes, and nothing else.
+- `DepositReviewService` calls these transition methods, invokes `InvestmentCreationService` on approval, and rolls back the transition if investment creation fails.
+- `Admin::DepositsController` delegates to `DepositReviewService` rather than calling the model directly.
+
+## Consequences
+
+The deposit workflow is now consistent with ADR-013 and with the withdrawal review pattern. `DepositReviewService` is the natural extension point for the deposit notification emails introduced in Milestone 11.
+
+---
+
 # Decision Process
 
 New architectural decisions should be documented when they:

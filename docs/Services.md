@@ -76,6 +76,32 @@ This produces predictable controller logic throughout the application.
 
 # Service Catalogue
 
+## DepositReviewService
+
+### Responsibility
+
+Handles administrator approval and rejection of a deposit.
+
+### Approval
+
+- transitions the deposit to approved via `Deposit#approve!`
+- invokes `InvestmentCreationService` to create the resulting investment
+- rolls back the approval if investment creation fails, leaving the deposit pending
+
+### Rejection
+
+- transitions the deposit to rejected via `Deposit#reject!`
+- performs no wallet or investment mutation
+
+### Does Not
+
+- mutate wallet balances
+- duplicate `InvestmentCreationService`'s business rules
+
+`Deposit#approve!` and `Deposit#reject!` remain pure state-transition methods on the model. `DepositReviewService` is the sole caller responsible for orchestrating the full approval workflow, mirroring how `WithdrawalReviewService` owns the withdrawal review workflow.
+
+---
+
 ## InvestmentCreationService
 
 ### Responsibility

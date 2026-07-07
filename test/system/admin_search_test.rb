@@ -118,7 +118,7 @@ class AdminSearchTest < ApplicationSystemTestCase
   # --- Investments admin page ---
 
   test "admin can visit admin investments index" do
-    @alice_deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @alice_deposit, action: :approve, reviewer: @admin).call
     login_as @admin
     visit admin_investments_path
     assert_text "Investments"
@@ -126,8 +126,8 @@ class AdminSearchTest < ApplicationSystemTestCase
   end
 
   test "admin investments search filters by investor" do
-    @alice_deposit.approve!(reviewer: @admin)
-    @bob_deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @alice_deposit, action: :approve, reviewer: @admin).call
+    DepositReviewService.new(deposit: @bob_deposit, action: :approve, reviewer: @admin).call
     login_as @admin
     visit admin_investments_path
     fill_in "search", with: "Alice Searchable"

@@ -22,7 +22,7 @@ class CompleteInvestmentsJobTest < ActiveSupport::TestCase
       transaction_hash: "#{hash_prefix}#{SecureRandom.hex(24)}",
       submitted_at:     Time.current
     )
-    deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: deposit, action: :approve, reviewer: @admin).call
     deposit.reload
     investment = deposit.investment
     investment.update!(ends_at: ends_at)

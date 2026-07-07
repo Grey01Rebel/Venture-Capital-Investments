@@ -245,6 +245,8 @@ Every financial mutation is:
 
 ## Milestone 11 – Communication
 
+Status: In Progress
+
 Planned features:
 
 - Transactional emails
@@ -255,6 +257,13 @@ Planned features:
 - Notification preferences
 
 This milestone improves communication without changing financial workflows.
+
+### Phase 1 — Deposit Notifications
+
+Before adding deposit notification emails, the deposit review workflow was refactored to comply with ADR-013 (see `docs/Decisions.md`, ADR-015): `DepositReviewService` now owns approval/rejection orchestration, and `Deposit#approve!`/`#reject!` are reduced to pure state transitions. This gives the upcoming `DepositMailer` a proper, service-level place to hook into via `deliver_later`, matching how `WithdrawalReviewService` already owns the withdrawal workflow.
+
+Refactor status: ✅ complete, pending full test suite confirmation.
+`DepositMailer` (approved/rejected notifications): ⏳ pending.
 
 ---
 
@@ -353,7 +362,7 @@ Architecture is treated as a long-term asset rather than an afterthought.
 | Milestone 8 – Automation & Scheduling | ✅ Complete |
 | Milestone 9 – Withdrawal Lifecycle | ✅ Complete |
 | Milestone 10 – Administrative Operations | ✅ Complete |
-| Milestone 11 – Communication | ⏳ Planned |
+| Milestone 11 – Communication | 🔄 In Progress |
 | Milestone 12 – Public API (Optional) | 🔶 Optional |
 | Milestone 13 – Platform Hardening | ⏳ Planned |
 | Milestone 14 – Production Deployment | ⏳ Planned |
