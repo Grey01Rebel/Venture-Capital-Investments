@@ -2,6 +2,8 @@
 require "test_helper"
 
 class CompleteWithdrawalServiceTest < ActiveSupport::TestCase
+  include ActionMailer::TestHelper
+
   def setup
     @admin  = create_confirmed_user
     @admin.update!(role: :admin)
@@ -69,6 +71,12 @@ class CompleteWithdrawalServiceTest < ActiveSupport::TestCase
     assert_nil result.error
   end
 
+  test "enqueues a completion notification email on success" do
+    assert_enqueued_email_with WithdrawalMailer, :completed, args: [@withdrawal] do
+      call_service
+    end
+  end
+
   # --- transaction_hash validation ---
 
   test "returns failure when transaction_hash is blank" do
@@ -86,6 +94,12 @@ class CompleteWithdrawalServiceTest < ActiveSupport::TestCase
   test "withdrawal remains approved when transaction_hash is blank" do
     call_service(hash: "")
     assert @withdrawal.reload.approved?
+  end
+
+  test "does not enqueue a completion email when transaction_hash is blank" do
+    assert_no_enqueued_emails do
+      call_service(hash: "")
+    end
   end
 
   test "returns failure for a duplicate transaction_hash" do
@@ -137,5 +151,12 @@ class CompleteWithdrawalServiceTest < ActiveSupport::TestCase
     @withdrawal.update!(status: :pending, approved_at: nil, reviewed_by_id: nil)
     call_service
     assert @withdrawal.reload.pending?
+  end
+
+  test "does not enqueue a completion email for an ineligible withdrawal" do
+    @withdrawal.update!(status: :pending, approved_at: nil, reviewed_by_id: nil)
+    assert_no_enqueued_emails do
+      call_service
+    end
   end
 end

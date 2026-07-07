@@ -431,6 +431,52 @@ Architectural quality is maintained as the application grows.
 
 ---
 
+# ADR-015: Deposit Review Extracted Into DepositReviewService
+
+## Status
+
+Accepted
+
+## Context
+
+`Deposit#approve!` and `Deposit#reject!` originally orchestrated the full approval workflow directly on the model: transitioning status, opening a transaction, invoking `InvestmentCreationService`, and rolling back on failure. This violated ADR-013 (services own financial state transitions) by placing workflow orchestration in the model rather than a dedicated service, and left `Deposit` responsible for both its own state and the resulting investment's creation.
+
+This became a blocker to Milestone 11 (Communication): notification delivery is a workflow-level concern, and the model was not an appropriate place to add it.
+
+## Decision
+
+`DepositReviewService` now owns the deposit review workflow, mirroring the existing `WithdrawalReviewService`.
+
+- `Deposit#approve!` and `Deposit#reject!` are reduced to pure state transitions: they update status, timestamps, reviewer, and notes, and nothing else.
+- `DepositReviewService` calls these transition methods, invokes `InvestmentCreationService` on approval, and rolls back the transition if investment creation fails.
+- `Admin::DepositsController` delegates to `DepositReviewService` rather than calling the model directly.
+
+## Consequences
+
+The deposit workflow is now consistent with ADR-013 and with the withdrawal review pattern. `DepositReviewService` is the natural extension point for the deposit notification emails introduced in Milestone 11.
+
+---
+
+# ADR-016: Withdrawal Notifications Are Scoped to Completion Only
+
+## Status
+
+Accepted
+
+## Context
+
+Withdrawals move through pending → approved/rejected → completed. Deposit notifications (ADR-015) cover both terminal review outcomes, but a withdrawal's approval is an internal administrative step, not a change the member's funds have actually undergone — the funds were already reserved at submission time. Completion is the point at which BTC actually leaves the platform.
+
+## Decision
+
+Only the pending → completed transition sends an email, via `WithdrawalMailer#completed`, triggered from `CompleteWithdrawalService`. Approval and rejection do not send notifications in this milestone.
+
+## Consequences
+
+Members are notified about the event with real financial consequence — money moving — without added noise for an intermediate administrative step. If member feedback later shows rejection notifications are needed (e.g. to explain why reserved funds were returned), that can be added to `WithdrawalReviewService` without revisiting this decision for completion.
+
+---
+
 # Decision Process
 
 New architectural decisions should be documented when they:

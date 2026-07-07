@@ -20,7 +20,7 @@ class GenerateDailyProfitServiceTest < ActiveSupport::TestCase
       transaction_hash: "gdp#{SecureRandom.hex(30)}",
       submitted_at:     Time.current
     )
-    @deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @deposit, action: :approve, reviewer: @admin).call
     @deposit.reload
     @investment = @deposit.investment
     @wallet     = @user.wallet
@@ -200,7 +200,7 @@ class GenerateDailyProfitServiceTest < ActiveSupport::TestCase
       transaction_hash: "gdp2#{SecureRandom.hex(28)}",
       submitted_at:     Time.current
     )
-    gold_deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: gold_deposit, action: :approve, reviewer: @admin).call
     gold_deposit.reload
     gold_investment = gold_deposit.investment
 

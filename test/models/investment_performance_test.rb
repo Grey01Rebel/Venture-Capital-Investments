@@ -20,7 +20,7 @@ class InvestmentPerformanceTest < ActiveSupport::TestCase
       transaction_hash: "perf#{SecureRandom.hex(28)}",
       submitted_at:     Time.current
     )
-    @deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @deposit, action: :approve, reviewer: @admin).call
     @deposit.reload
     @investment = @deposit.investment
   end

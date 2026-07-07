@@ -19,9 +19,14 @@ class Admin::DepositsController < Admin::BaseController
 
   def approve
     authorize @deposit
-    result = @deposit.approve!(reviewer: current_user, notes: params[:admin_notes].presence)
+    result = DepositReviewService.new(
+      deposit:     @deposit,
+      action:      :approve,
+      reviewer:    current_user,
+      admin_notes: params[:admin_notes].presence
+    ).call
 
-    if result
+    if result.success?
       redirect_to admin_deposit_path(@deposit), notice: "Deposit approved successfully."
     else
       redirect_to admin_deposit_path(@deposit), alert: "This deposit has already been reviewed and cannot be approved."
@@ -30,9 +35,14 @@ class Admin::DepositsController < Admin::BaseController
 
   def reject
     authorize @deposit
-    result = @deposit.reject!(reviewer: current_user, notes: params[:admin_notes].presence)
+    result = DepositReviewService.new(
+      deposit:     @deposit,
+      action:      :reject,
+      reviewer:    current_user,
+      admin_notes: params[:admin_notes].presence
+    ).call
 
-    if result
+    if result.success?
       redirect_to admin_deposit_path(@deposit), notice: "Deposit rejected successfully."
     else
       redirect_to admin_deposit_path(@deposit), alert: "This deposit has already been reviewed and cannot be rejected."

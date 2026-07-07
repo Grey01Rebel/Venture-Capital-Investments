@@ -1,0 +1,19 @@
+<h1>Your deposit could not be approved</h1>
+
+<p>Hi <%= @user.full_name %>,</p>
+
+<p>
+  Unfortunately we were unable to approve your deposit of
+  <%= number_to_currency(@deposit.amount_usd) %> (<%= @deposit.btc_amount %> BTC)
+  toward the <strong><%= @plan.name %></strong> plan.
+</p>
+
+<% if @deposit.admin_notes.present? %>
+  <p><strong>Reason:</strong> <%= @deposit.admin_notes %></p>
+<% end %>
+
+<p>
+  If you believe this was a mistake, or you'd like to submit a new deposit,
+  you can view your deposit history:
+  <%= link_to "View deposits", deposits_url %>
+</p>

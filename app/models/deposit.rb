@@ -22,31 +22,21 @@ class Deposit < ApplicationRecord
       )
   }
 
+  # Pure state transition — approving a deposit does not, by itself, create
+  # an investment. Orchestrating that workflow is the responsibility of
+  # DepositReviewService.
   def approve!(reviewer:, notes: nil)
     return false unless pending?
 
-    investment_succeeded = false
-
-    transaction do
-      update!(
-        status:       :approved,
-        approved_at:  Time.current,
-        reviewer:     reviewer,
-        admin_notes:  notes
-      )
-
-      result = InvestmentCreationService.new(self).call
-
-      if result.success?
-        investment_succeeded = true
-      else
-        raise ActiveRecord::Rollback, result.error
-      end
-    end
-
-    investment_succeeded
+    update!(
+      status:       :approved,
+      approved_at:  Time.current,
+      reviewer:     reviewer,
+      admin_notes:  notes
+    )
   end
 
+  # Pure state transition — see approve! above.
   def reject!(reviewer:, notes: nil)
     return false unless pending?
 

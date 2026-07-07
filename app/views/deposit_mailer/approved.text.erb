@@ -1,0 +1,18 @@
+Your deposit has been approved
+
+Hi <%= @user.full_name %>,
+
+Good news — your deposit of <%= number_to_currency(@deposit.amount_usd) %> (<%= @deposit.btc_amount %> BTC)
+toward the <%= @plan.name %> plan has been approved and your investment is now active.
+
+Principal:          <%= number_to_currency(@investment.principal_amount) %>
+Daily return rate:  <%= @investment.daily_return_rate %>%
+Duration:           <%= @investment.duration_days %> days
+Start date:         <%= @investment.started_at.to_date %>
+End date:           <%= @investment.ends_at.to_date %>
+<% if @deposit.admin_notes.present? %>
+Note from our team: <%= @deposit.admin_notes %>
+<% end %>
+View your investment: <%= investment_url(@investment) %>
+
+Thank you for investing with us.

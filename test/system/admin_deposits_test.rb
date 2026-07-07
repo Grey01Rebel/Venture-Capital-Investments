@@ -108,7 +108,7 @@ class AdminDepositsTest < ApplicationSystemTestCase
   end
   # Reviewed deposit shows read-only review record
   test "approved deposit shows read-only review record" do
-    @deposit.approve!(reviewer: @admin, notes: "Confirmed.")
+    DepositReviewService.new(deposit: @deposit, action: :approve, reviewer: @admin, admin_notes: "Confirmed.").call
     login_as @admin
     visit admin_deposit_path(@deposit)
     assert_text "Review Record"
@@ -120,7 +120,7 @@ class AdminDepositsTest < ApplicationSystemTestCase
 
   # Cannot re-review an already reviewed deposit
   test "already approved deposit cannot be approved again" do
-    @deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @deposit, action: :approve, reviewer: @admin).call
     login_as @admin
     visit admin_deposit_path(@deposit)
     assert_no_text "Approve Deposit"
@@ -143,7 +143,7 @@ class AdminDepositsTest < ApplicationSystemTestCase
 
   # Status filter tabs work
   test "approved tab shows approved deposits" do
-    @deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @deposit, action: :approve, reviewer: @admin).call
     login_as @admin
     visit admin_deposits_path(status: "approved")
     assert_text "Approved"
@@ -151,7 +151,7 @@ class AdminDepositsTest < ApplicationSystemTestCase
   end
 
   test "rejected tab shows rejected deposits" do
-    @deposit.reject!(reviewer: @admin)
+    DepositReviewService.new(deposit: @deposit, action: :reject, reviewer: @admin).call
     login_as @admin
     visit admin_deposits_path(status: "rejected")
     assert_text "Rejected"

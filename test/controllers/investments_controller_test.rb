@@ -18,7 +18,7 @@ class InvestmentsControllerTest < ActionDispatch::IntegrationTest
       transaction_hash: "invct#{SecureRandom.hex(28)}",
       submitted_at:     Time.current
     )
-    @member_deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @member_deposit, action: :approve, reviewer: @admin).call
     @member_deposit.reload
     @investment = @member_deposit.investment
 
@@ -30,7 +30,7 @@ class InvestmentsControllerTest < ActionDispatch::IntegrationTest
       transaction_hash: "invct2#{SecureRandom.hex(27)}",
       submitted_at:     Time.current
     )
-    @other_deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @other_deposit, action: :approve, reviewer: @admin).call
     @other_deposit.reload
     @other_investment = @other_deposit.investment
   end

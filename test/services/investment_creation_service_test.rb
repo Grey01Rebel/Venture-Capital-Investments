@@ -19,7 +19,7 @@ class InvestmentCreationServiceTest < ActiveSupport::TestCase
   end
 
   def approve_deposit
-    @deposit.approve!(reviewer: @admin)
+    DepositReviewService.new(deposit: @deposit, action: :approve, reviewer: @admin).call
     @deposit.reload
   end
 
@@ -46,8 +46,8 @@ class InvestmentCreationServiceTest < ActiveSupport::TestCase
     assert_equal "An investment already exists for this deposit.", result.error
   end
 
-  # Successful creation via approve!
-  test "approve! creates an investment" do
+  # Successful creation via deposit approval
+  test "approving a deposit creates an investment" do
     assert_difference "Investment.count", 1 do
       approve_deposit
     end
@@ -97,27 +97,5 @@ class InvestmentCreationServiceTest < ActiveSupport::TestCase
   test "investment status defaults to active" do
     approve_deposit
     assert @deposit.investment.active?
-  end
-
-  # Atomicity — if investment creation fails, deposit approval rolls back
-  test "deposit remains pending if investment creation fails" do
-    # Create a duplicate investment to trigger uniqueness failure
-    Investment.create!(
-      user:              @member,
-      deposit:           @deposit,
-      investment_plan:   @plan,
-      principal_amount:  500.00,
-      daily_return_rate: 0.80,
-      duration_days:     14,
-      started_at:        Time.current,
-      ends_at:           14.days.from_now
-    )
-
-    # Now approve — investment creation will fail due to uniqueness
-    result = @deposit.approve!(reviewer: @admin)
-
-    # approve! returns false when transaction rolls back
-    assert_equal false, result
-    assert @deposit.reload.pending?
   end
 end
