@@ -501,6 +501,59 @@ Members are notified about the two events with genuine, discrete financial signi
 
 ---
 
+# ADR-018: CSP style-src Permits unsafe-inline
+
+## Status
+
+Accepted
+
+## Context
+
+Milestone 13 Phase 1 introduced an application-wide Content-Security-Policy. `script-src` can be fully locked down to `'self'` plus a per-session nonce, since the application has no inline `<script>` tags outside of importmap's own nonce-covered output.
+
+`style-src` is different. `app/views/investments/show.html.erb` sets an inline `style="width: X%"` attribute to render a progress bar. CSP nonces apply to `<style>` elements and to tags Rails explicitly marks with `nonce: true` — they do not apply to arbitrary `style=""` attributes on ordinary elements. There is no nonce-based way to permit this one inline style without also permitting all inline styles.
+
+## Decision
+
+`style-src` includes `'self' 'unsafe-inline'`. This is a narrower compromise than leaving CSP unconfigured entirely, and `script-src` — the directive with the more severe XSS blast radius — remains strict.
+
+The alternative was refactoring the progress bar to use a CSS custom property set via a nonce-covered `<style>` tag, closing the gap entirely. That refactor was deliberately not bundled into a security-headers phase: it touches application view rendering, which is out of scope for a phase intended to be config-only and low-risk, and its correctness can't be verified through the automated test suite (CSP violations aren't visible to Capybara/system tests) — it would need a manual browser check regardless of when it's done.
+
+## Consequences
+
+An attacker able to inject an inline `style` attribute (a narrower, lower-severity primitive than inline script) would not be blocked by CSP alone. This is judged an acceptable, explicitly-documented trade-off rather than an oversight. Closing it — by refactoring the one affected view — is a candidate for a small follow-up, not a blocker to shipping the rest of the header policy.
+
+---
+
+# ADR-019: Permissions-Policy Is Set Explicitly, Not via Rails' `config.permissions_policy`
+
+## Status
+
+Accepted
+
+## Context
+
+Milestone 13 Phase 1 originally configured `config/initializers/permissions_policy.rb` using Rails' documented `Rails.application.config.permissions_policy` API — the standard, framework-recommended mechanism.
+
+Test verification against a real request showed the header never appeared. Investigation traced this to a known, filed Rails bug: [rails/rails#48878](https://github.com/rails/rails/issues/48878). `ActionDispatch::PermissionsPolicy::Middleware`, despite its name, hardcodes its header constant to the legacy `Feature-Policy` name and the legacy semicolon-separated value syntax (`camera 'none'`) — not the modern `Permissions-Policy` header and its `camera=()` structured-field syntax. This is intentional legacy behavior on Rails' part (per the middleware's own source comment), not a misconfiguration on this application's side. `Feature-Policy` has had no browser support since roughly 2021; relying on this Rails mechanism would have shipped a security control that appears configured but provides no actual browser-side protection.
+
+## Decision
+
+`config/initializers/permissions_policy.rb` is removed. The real `Permissions-Policy` header is set explicitly in `ApplicationController` via an `after_action`, bypassing Rails' framework helper entirely:
+
+```ruby
+PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), usb=(), payment=(), fullscreen=()"
+after_action :set_permissions_policy_header
+```
+
+This is a controller-level `after_action` for a cross-cutting HTTP-response concern, not a model callback governing financial state — it does not conflict with the project's restriction on callbacks for financial workflows.
+
+## Consequences
+
+The header now matches what current browsers actually parse and enforce, verified directly rather than assumed. Any future Rails upgrade that fixes rails/rails#48878 would make this explicit `after_action` redundant with the framework default; at that point either can be removed in favor of the other, but there's no harm in the explicit version persisting alongside a fixed framework default.
+
+---
+
 # Decision Process
 
 New architectural decisions should be documented when they:

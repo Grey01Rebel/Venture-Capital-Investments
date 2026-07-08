@@ -1,0 +1,256 @@
+diff --git a/config/initializers/content_security_policy.rb b/config/initializers/content_security_policy.rb
+index b3076b3..b26c45b 100644
+--- a/config/initializers/content_security_policy.rb
++++ b/config/initializers/content_security_policy.rb
+@@ -1,25 +1,35 @@
+ # Be sure to restart your server when you modify this file.
+ 
+-# Define an application-wide content security policy.
++# Application-wide content security policy.
+ # See the Securing Rails Applications Guide for more information:
+ # https://guides.rubyonrails.org/security.html#content-security-policy-header
+-
+-# Rails.application.configure do
+-#   config.content_security_policy do |policy|
+-#     policy.default_src :self, :https
+-#     policy.font_src    :self, :https, :data
+-#     policy.img_src     :self, :https, :data
+-#     policy.object_src  :none
+-#     policy.script_src  :self, :https
+-#     policy.style_src   :self, :https
+-#     # Specify URI for violation reports
+-#     # policy.report_uri "/csp-violation-report-endpoint"
+-#   end
+-#
+-#   # Generate session nonces for permitted importmap, inline scripts, and inline styles.
+-#   config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
+-#   config.content_security_policy_nonce_directives = %w(script-src style-src)
+ #
+-#   # Report violations without enforcing the policy.
+-#   # config.content_security_policy_report_only = true
+-# end
++# This app serves no external resources — no third-party fonts, CDNs, or
++# embedded content — so the policy is scoped to :self rather than the
++# broader :https allowance in Rails' generated template.
++Rails.application.configure do
++  config.content_security_policy do |policy|
++    policy.default_src  :self
++    policy.font_src     :self, :data
++    policy.img_src      :self, :data
++    policy.object_src   :none
++    policy.script_src   :self
++    # unsafe_inline is required for style-src only: the investment
++    # performance view sets an inline `style="width: X%"` attribute for a
++    # progress bar. CSP nonces cover <script>/<style> elements, not raw
++    # inline style="" attributes on arbitrary tags, so this can't be
++    # closed with a nonce alone. See docs/Decisions.md, ADR-018.
++    policy.style_src    :self, :unsafe_inline
++    policy.base_uri     :self
++    policy.form_action  :self
++    policy.frame_ancestors :none
++  end
++
++  # Generate session nonces for importmap and inline <script> tags.
++  # style-src is intentionally excluded — see the comment above.
++  config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
++  config.content_security_policy_nonce_directives = %w(script-src)
++
++  # Report violations without enforcing the policy.
++  # config.content_security_policy_report_only = true
++end
+diff --git a/config/initializers/permissions_policy.rb b/config/initializers/permissions_policy.rb
+new file mode 100644
+index 0000000..06d9c06
+--- /dev/null
++++ b/config/initializers/permissions_policy.rb
+@@ -0,0 +1,15 @@
++# Be sure to restart your server when you modify this file.
++
++# Define an application-wide HTTP permissions policy. For further
++# information see: https://developers.google.com/web/updates/2018/06/feature-policy
++#
++# This app has no legitimate use for any of these browser features, so
++# they're disabled outright rather than scoped to :self.
++Rails.application.config.permissions_policy do |policy|
++  policy.camera      :none
++  policy.microphone  :none
++  policy.geolocation :none
++  policy.usb         :none
++  policy.payment     :none
++  policy.fullscreen  :none
++end
+diff --git a/docs/Decisions.md b/docs/Decisions.md
+index 2be693f..6e4f453 100644
+--- a/docs/Decisions.md
++++ b/docs/Decisions.md
+@@ -501,6 +501,30 @@ Members are notified about the two events with genuine, discrete financial signi
+ 
+ ---
+ 
++# ADR-018: CSP style-src Permits unsafe-inline
++
++## Status
++
++Accepted
++
++## Context
++
++Milestone 13 Phase 1 introduced an application-wide Content-Security-Policy. `script-src` can be fully locked down to `'self'` plus a per-session nonce, since the application has no inline `<script>` tags outside of importmap's own nonce-covered output.
++
++`style-src` is different. `app/views/investments/show.html.erb` sets an inline `style="width: X%"` attribute to render a progress bar. CSP nonces apply to `<style>` elements and to tags Rails explicitly marks with `nonce: true` — they do not apply to arbitrary `style=""` attributes on ordinary elements. There is no nonce-based way to permit this one inline style without also permitting all inline styles.
++
++## Decision
++
++`style-src` includes `'self' 'unsafe-inline'`. This is a narrower compromise than leaving CSP unconfigured entirely, and `script-src` — the directive with the more severe XSS blast radius — remains strict.
++
++The alternative was refactoring the progress bar to use a CSS custom property set via a nonce-covered `<style>` tag, closing the gap entirely. That refactor was deliberately not bundled into a security-headers phase: it touches application view rendering, which is out of scope for a phase intended to be config-only and low-risk, and its correctness can't be verified through the automated test suite (CSP violations aren't visible to Capybara/system tests) — it would need a manual browser check regardless of when it's done.
++
++## Consequences
++
++An attacker able to inject an inline `style` attribute (a narrower, lower-severity primitive than inline script) would not be blocked by CSP alone. This is judged an acceptable, explicitly-documented trade-off rather than an oversight. Closing it — by refactoring the one affected view — is a candidate for a small follow-up, not a blocker to shipping the rest of the header policy.
++
++---
++
+ # Decision Process
+ 
+ New architectural decisions should be documented when they:
+diff --git a/docs/Roadmap.md b/docs/Roadmap.md
+index 5ee764e..e70b792 100644
+--- a/docs/Roadmap.md
++++ b/docs/Roadmap.md
+@@ -301,18 +301,25 @@ This milestone is optional and will only be implemented if external integrations
+ 
+ ## Milestone 13 – Platform Hardening
+ 
+-Planned improvements:
++Status: In Progress
++
++Planned improvements, in implementation order:
+ 
+-- Two-factor authentication
+-- Audit logging
+-- Security headers
+-- Monitoring
+-- Error reporting
+-- Performance optimisation
+-- Operational tooling
++1. Security headers
++2. Audit logging
++3. Two-factor authentication (admin accounts only, initially)
++4. Performance optimisation
++5. Monitoring and error reporting
++6. Operational tooling
+ 
+ Focus shifts from features to production readiness.
+ 
++### Phase 1 — Security Headers
++
++Configured an application-wide Content-Security-Policy and Permissions-Policy (`config/initializers/content_security_policy.rb`, `config/initializers/permissions_policy.rb`), scoped to `'self'` throughout since the application loads no third-party resources. `script-src` carries a per-session nonce with no `unsafe-inline`; `style-src` permits `unsafe-inline` as a documented, narrow exception (see `docs/Decisions.md`, ADR-018). Rails' framework-default secure headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`) were already active via `config.load_defaults 8.0` and required no code — verified rather than assumed, and covered by the same test file.
++
++Status: ✅ implemented, pending test confirmation. Note: header presence is verified by the automated suite, but CSP enforcement itself is a browser-side behavior the test suite can't observe — a manual smoke test in-browser is recommended before considering this phase fully closed.
++
+ ---
+ 
+ ## Milestone 14 – Production Deployment
+@@ -382,5 +389,5 @@ Architecture is treated as a long-term asset rather than an afterthought.
+ | Milestone 10 – Administrative Operations | ✅ Complete |
+ | Milestone 11 – Communication | 🔄 In Progress |
+ | Milestone 12 – Public API (Optional) | 🔶 Optional |
+-| Milestone 13 – Platform Hardening | ⏳ Planned |
++| Milestone 13 – Platform Hardening | 🔄 In Progress |
+ | Milestone 14 – Production Deployment | ⏳ Planned |
+\ No newline at end of file
+diff --git a/docs/Security.md b/docs/Security.md
+index dd14f48..781003f 100644
+--- a/docs/Security.md
++++ b/docs/Security.md
+@@ -276,6 +276,28 @@ Raw SQL interpolation is avoided.
+ 
+ ---
+ 
++# HTTP Security Headers
++
++The application sets an explicit, self-scoped Content-Security-Policy and Permissions-Policy, configured in `config/initializers/content_security_policy.rb` and `config/initializers/permissions_policy.rb`.
++
++## Content-Security-Policy
++
++The application loads no third-party resources — no external fonts, CDNs, or embedded content — so the policy is scoped to `'self'` rather than the broader `https:` allowance Rails generates by default.
++
++- `script-src 'self'` with a per-session nonce (via `content_security_policy_nonce_generator`), covering importmap and any inline `<script>` tags. No `unsafe-inline` on scripts.
++- `style-src 'self' 'unsafe-inline'` — the one documented exception. See ADR-018 in `docs/Decisions.md` for why this can't be closed with a nonce alone.
++- `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`.
++
++## Permissions-Policy
++
++Camera, microphone, geolocation, USB, payment, and fullscreen access are all disabled outright — the application has no legitimate use for any of them.
++
++## Already provided by the framework
++
++Rails' `config.load_defaults 8.0` already sets `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin` on every response without further configuration. These are verified in `test/integration/security_headers_test.rb` alongside the CSP/Permissions-Policy work, but no code was needed to enable them.
++
++---
++
+ # Mass Assignment Protection
+ 
+ Controllers permit only explicitly allowed parameters.
+diff --git a/test/integration/security_headers_test.rb b/test/integration/security_headers_test.rb
+new file mode 100644
+index 0000000..d578f24
+--- /dev/null
++++ b/test/integration/security_headers_test.rb
+@@ -0,0 +1,55 @@
++# frozen_string_literal: true
++require "test_helper"
++
++class SecurityHeadersTest < ActionDispatch::IntegrationTest
++  test "sets a Content-Security-Policy header" do
++    get root_path # unauthenticated root is the sign-in page
++    assert_response :success
++
++    csp = response.headers["Content-Security-Policy"]
++    assert_not_nil csp
++
++    assert_match "default-src 'self'", csp
++    assert_match "object-src 'none'", csp
++    assert_match "frame-ancestors 'none'", csp
++    assert_match "base-uri 'self'", csp
++    assert_match "form-action 'self'", csp
++  end
++
++  test "script-src does not allow unsafe-inline" do
++    get root_path
++    csp = response.headers["Content-Security-Policy"]
++
++    script_src_directive = csp.split(";").find { |d| d.strip.start_with?("script-src") }
++    assert_not_nil script_src_directive
++    assert_no_match "unsafe-inline", script_src_directive
++  end
++
++  test "script-src carries a per-session nonce" do
++    get root_path
++    csp = response.headers["Content-Security-Policy"]
++
++    assert_match(/script-src[^;]*'nonce-/, csp)
++  end
++
++  test "sets a Permissions-Policy header restricting unused browser features" do
++    get root_path
++    assert_response :success
++
++    policy = response.headers["Permissions-Policy"]
++    assert_not_nil policy
++
++    assert_match "camera=()", policy
++    assert_match "microphone=()", policy
++    assert_match "geolocation=()", policy
++    assert_match "payment=()", policy
++  end
++
++  test "Rails' framework-default secure headers remain active" do
++    get root_path
++
++    assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
++    assert_equal "nosniff", response.headers["X-Content-Type-Options"]
++    assert_equal "strict-origin-when-cross-origin", response.headers["Referrer-Policy"]
++  end
++end
