@@ -1,0 +1,15 @@
+Your investment has completed
+
+Hi <%= @user.full_name %>,
+
+Your investment in the <%= @plan.name %> plan has reached the end of its term, and the principal
+has been returned to your available balance.
+
+Principal returned:  <%= number_to_currency(@investment.principal_amount) %>
+Total profit earned: <%= number_to_currency(@investment.total_profit_earned) %>
+Start date:          <%= @investment.started_at.to_date %>
+Completed:            <%= @investment.completed_at.to_date %>
+
+View the full performance breakdown: <%= investment_url(@investment) %>
+
+Thank you for investing with us.

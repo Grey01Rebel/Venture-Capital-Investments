@@ -1,0 +1,295 @@
+diff --git a/app/mailers/investment_mailer.rb b/app/mailers/investment_mailer.rb
+new file mode 100644
+index 0000000..dfffb06
+--- /dev/null
++++ b/app/mailers/investment_mailer.rb
+@@ -0,0 +1,17 @@
++# frozen_string_literal: true
++class InvestmentMailer < ApplicationMailer
++  # Sent when an investment matures and its principal is returned to the
++  # member's wallet. Per ADR-017, this is the only investment lifecycle
++  # event that generates a transactional email in this milestone — daily
++  # profit credits are deliberately not emailed individually.
++  def completed(investment)
++    @investment = investment
++    @user       = investment.user
++    @plan       = investment.investment_plan
++
++    mail(
++      to:      @user.email,
++      subject: "Your investment has completed"
++    )
++  end
++end
+diff --git a/app/services/complete_investment_service.rb b/app/services/complete_investment_service.rb
+index 76051c4..0c590db 100644
+--- a/app/services/complete_investment_service.rb
++++ b/app/services/complete_investment_service.rb
+@@ -29,6 +29,8 @@ class CompleteInvestmentService
+       )
+     end
+ 
++    InvestmentMailer.completed(@investment).deliver_later
++
+     Result.new(success?: true, investment: @investment, error: nil)
+   rescue ActiveRecord::RecordInvalid => e
+     failure(e.record.errors.full_messages.to_sentence)
+diff --git a/app/views/investment_mailer/completed.html.erb b/app/views/investment_mailer/completed.html.erb
+new file mode 100644
+index 0000000..0eb234e
+--- /dev/null
++++ b/app/views/investment_mailer/completed.html.erb
+@@ -0,0 +1,23 @@
++<h1>Your investment has completed</h1>
++
++<p>Hi <%= @user.full_name %>,</p>
++
++<p>
++  Your investment in the <strong><%= @plan.name %></strong> plan has reached
++  the end of its term, and the principal has been returned to your available
++  balance.
++</p>
++
++<ul>
++  <li>Principal returned: <%= number_to_currency(@investment.principal_amount) %></li>
++  <li>Total profit earned: <%= number_to_currency(@investment.total_profit_earned) %></li>
++  <li>Start date: <%= @investment.started_at.to_date %></li>
++  <li>Completed: <%= @investment.completed_at.to_date %></li>
++</ul>
++
++<p>
++  You can view the full performance breakdown at any time:
++  <%= link_to "View investment", investment_url(@investment) %>
++</p>
++
++<p>Thank you for investing with us.</p>
+diff --git a/app/views/investment_mailer/completed.text.erb b/app/views/investment_mailer/completed.text.erb
+new file mode 100644
+index 0000000..afdd32b
+--- /dev/null
++++ b/app/views/investment_mailer/completed.text.erb
+@@ -0,0 +1,15 @@
++Your investment has completed
++
++Hi <%= @user.full_name %>,
++
++Your investment in the <%= @plan.name %> plan has reached the end of its term, and the principal
++has been returned to your available balance.
++
++Principal returned:  <%= number_to_currency(@investment.principal_amount) %>
++Total profit earned: <%= number_to_currency(@investment.total_profit_earned) %>
++Start date:          <%= @investment.started_at.to_date %>
++Completed:            <%= @investment.completed_at.to_date %>
++
++View the full performance breakdown: <%= investment_url(@investment) %>
++
++Thank you for investing with us.
+diff --git a/docs/Decisions.md b/docs/Decisions.md
+index 3f3fc18..2be693f 100644
+--- a/docs/Decisions.md
++++ b/docs/Decisions.md
+@@ -477,6 +477,30 @@ Members are notified about the event with real financial consequence — money m
+ 
+ ---
+ 
++# ADR-017: Investment Lifecycle Notifications Are Scoped to Completion Only
++
++## Status
++
++Accepted
++
++## Context
++
++An investment's lifecycle produces two kinds of events: a daily profit credit (`GenerateDailyProfitService`, once per investment per day for the full `duration_days`) and a single completion event (`CompleteInvestmentService`, once, at maturity, when principal returns to the wallet).
++
++Emailing every daily profit credit individually would mean a member with several concurrent investments receiving multiple emails every day for the life of each investment — this creates notification fatigue and works against the product rather than for it. A periodic digest (e.g. weekly) is a reasonable alternative, but it is architecturally distinct from a per-transition mailer hook: it requires its own scheduled job and a cadence decision, rather than a single `deliver_later` call from the service that already owns the transition. That work is deferred to be scoped alongside the roadmap's notification-preferences milestone item, where cadence naturally belongs as a preference rather than a fixed decision.
++
++Investment creation is already covered by `DepositMailer#approved` (ADR-015) and is not a separate event here.
++
++## Decision
++
++Only investment completion sends an email, via `InvestmentMailer#completed`, triggered from `CompleteInvestmentService`. Daily profit credits do not send individual emails. Internal skip/failure conditions inside `GenerateDailyProfitService` and `CompleteInvestmentService` (missing wallet, not yet eligible, duplicate profit date) remain logged only and are never surfaced to members, since these are transient and self-resolving on the next scheduled run.
++
++## Consequences
++
++Members are notified about the two events with genuine, discrete financial significance — an investment being created and an investment maturing — without daily noise. The daily-profit digest remains a known, deferred piece of future work rather than an implicit gap.
++
++---
++
+ # Decision Process
+ 
+ New architectural decisions should be documented when they:
+diff --git a/docs/Roadmap.md b/docs/Roadmap.md
+index 5eb50e0..1a54725 100644
+--- a/docs/Roadmap.md
++++ b/docs/Roadmap.md
+@@ -269,6 +269,14 @@ Refactor status: ✅ complete, confirmed by full test suite (625 unit/integratio
+ 
+ Scoped to the completion transition only (see `docs/Decisions.md`, ADR-016) — approval and rejection are administrative steps, not the moment funds actually move. No orchestration refactor was needed: `CompleteWithdrawalService` already owned the completion transition, so `WithdrawalMailer#completed` was wired directly into it via `deliver_later`.
+ 
++Status: ✅ implemented and verified (639 unit/integration + 111 system tests, all passing).
++
++### Phase 3 — Investment Completion Notifications
++
++Scoped to the completion transition only (see `docs/Decisions.md`, ADR-017) — daily profit credits are deliberately not emailed individually to avoid notification fatigue, and investment creation is already covered by `DepositMailer#approved` (ADR-015). No orchestration refactor was needed: `CompleteInvestmentService` already owned the completion transition, so `InvestmentMailer#completed` was wired directly into it via `deliver_later`, fired after the wallet lock releases.
++
++The daily-profit digest is explicitly deferred and will be scoped alongside the notification-preferences roadmap item, since cadence (weekly/daily/off) is itself a preference rather than a fixed decision.
++
+ Status: ✅ implemented, pending test confirmation.
+ 
+ ---
+diff --git a/docs/Services.md b/docs/Services.md
+index 194dcb6..59c8ab2 100644
+--- a/docs/Services.md
++++ b/docs/Services.md
+@@ -168,6 +168,7 @@ Completes an investment after its term ends.
+ - validates completion eligibility
+ - returns principal
+ - marks investment completed
++- enqueues `InvestmentMailer#completed` via `deliver_later`
+ 
+ ### Does Not
+ 
+diff --git a/test/mailers/investment_mailer_test.rb b/test/mailers/investment_mailer_test.rb
+new file mode 100644
+index 0000000..ac158bb
+--- /dev/null
++++ b/test/mailers/investment_mailer_test.rb
+@@ -0,0 +1,45 @@
++# frozen_string_literal: true
++require "test_helper"
++
++class InvestmentMailerTest < ActionMailer::TestCase
++  def setup
++    @user  = create_confirmed_user(full_name: "Jane Investor")
++    @admin = create_confirmed_user
++    @admin.update!(role: :admin)
++    @plan  = create_investment_plan(position: 1801, investment_amount_usd: 500.00)
++
++    deposit = Deposit.create!(
++      user:             @user,
++      investment_plan:  @plan,
++      amount_usd:       @plan.investment_amount_usd,
++      btc_amount:       0.00812345,
++      transaction_hash: "invmail#{SecureRandom.hex(26)}",
++      submitted_at:     Time.current
++    )
++    DepositReviewService.new(deposit: deposit, action: :approve, reviewer: @admin).call
++    @investment = deposit.reload.investment
++    @investment.update!(ends_at: 1.day.ago)
++  end
++
++  test "completed email is sent to the investing user" do
++    CompleteInvestmentService.new(@investment).call
++    mail = InvestmentMailer.completed(@investment.reload)
++
++    assert_equal [@user.email], mail.to
++    assert_equal "Your investment has completed", mail.subject
++  end
++
++  test "completed email body includes the investment plan name" do
++    CompleteInvestmentService.new(@investment).call
++    mail = InvestmentMailer.completed(@investment.reload)
++
++    assert_match @plan.name, mail.body.encoded
++  end
++
++  test "completed email body includes total profit earned" do
++    CompleteInvestmentService.new(@investment).call
++    mail = InvestmentMailer.completed(@investment.reload)
++
++    assert_match "Total profit earned", mail.body.encoded
++  end
++end
+diff --git a/test/services/complete_investment_service_test.rb b/test/services/complete_investment_service_test.rb
+index 6a66887..682423e 100644
+--- a/test/services/complete_investment_service_test.rb
++++ b/test/services/complete_investment_service_test.rb
+@@ -1,6 +1,8 @@
+ require "test_helper"
+ 
+ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
++  include ActionMailer::TestHelper
++
+   def setup
+     @admin = create_confirmed_user
+     @admin.update!(role: :admin)
+@@ -97,6 +99,13 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
+     assert_nil result.error
+   end
+ 
++  test "enqueues a completion notification email on success" do
++    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis7b")
++    assert_enqueued_email_with InvestmentMailer, :completed, args: [investment] do
++      call_service(investment)
++    end
++  end
++
+   test "succeeds when ends_at is exactly now" do
+     investment = build_investment(ends_at: Time.current, hash_prefix: "cis8")
+     result = call_service(investment)
+@@ -125,6 +134,15 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
+     assert_equal original_balance, @wallet.available_balance
+   end
+ 
++  test "does not enqueue an email for an already completed investment" do
++    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis10b")
++    investment.update!(status: :completed, completed_at: Time.current)
++
++    assert_no_enqueued_emails do
++      call_service(investment)
++    end
++  end
++
+   # --- Future end date ---
+ 
+   test "returns failure when ends_at is still in the future" do
+@@ -151,6 +169,13 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
+     assert investment.active?
+   end
+ 
++  test "does not enqueue an email when ends_at is in the future" do
++    investment = build_investment(ends_at: 1.day.from_now, hash_prefix: "cis13b")
++    assert_no_enqueued_emails do
++      call_service(investment)
++    end
++  end
++
+   # --- Missing wallet ---
+ 
+   test "returns failure when wallet is missing" do
+@@ -172,6 +197,15 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
+     assert investment.active?
+   end
+ 
++  test "does not enqueue an email when wallet is missing" do
++    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis15b")
++    @wallet.destroy
++
++    assert_no_enqueued_emails do
++      call_service(investment)
++    end
++  end
++
+   # --- Transaction rollback ---
+ 
+   test "wallet remains unchanged if investment update fails" do
+@@ -203,6 +237,18 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
+     assert_equal "active", investment.reload.status
+   end
+ 
++  test "does not enqueue an email if the transaction rolls back" do
++    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis17b")
++
++    investment.define_singleton_method(:update!) do |*args|
++      raise ActiveRecord::RecordInvalid.new(self)
++    end
++
++    assert_no_enqueued_emails do
++      CompleteInvestmentService.new(investment).call
++    end
++  end
++
+   # --- Result object shape ---
+ 
+   test "success result has investment and nil error" do

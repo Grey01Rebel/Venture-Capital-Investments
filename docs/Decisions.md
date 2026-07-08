@@ -477,6 +477,30 @@ Members are notified about the event with real financial consequence — money m
 
 ---
 
+# ADR-017: Investment Lifecycle Notifications Are Scoped to Completion Only
+
+## Status
+
+Accepted
+
+## Context
+
+An investment's lifecycle produces two kinds of events: a daily profit credit (`GenerateDailyProfitService`, once per investment per day for the full `duration_days`) and a single completion event (`CompleteInvestmentService`, once, at maturity, when principal returns to the wallet).
+
+Emailing every daily profit credit individually would mean a member with several concurrent investments receiving multiple emails every day for the life of each investment — this creates notification fatigue and works against the product rather than for it. A periodic digest (e.g. weekly) is a reasonable alternative, but it is architecturally distinct from a per-transition mailer hook: it requires its own scheduled job and a cadence decision, rather than a single `deliver_later` call from the service that already owns the transition. That work is deferred to be scoped alongside the roadmap's notification-preferences milestone item, where cadence naturally belongs as a preference rather than a fixed decision.
+
+Investment creation is already covered by `DepositMailer#approved` (ADR-015) and is not a separate event here.
+
+## Decision
+
+Only investment completion sends an email, via `InvestmentMailer#completed`, triggered from `CompleteInvestmentService`. Daily profit credits do not send individual emails. Internal skip/failure conditions inside `GenerateDailyProfitService` and `CompleteInvestmentService` (missing wallet, not yet eligible, duplicate profit date) remain logged only and are never surfaced to members, since these are transient and self-resolving on the next scheduled run.
+
+## Consequences
+
+Members are notified about the two events with genuine, discrete financial significance — an investment being created and an investment maturing — without daily noise. The daily-profit digest remains a known, deferred piece of future work rather than an implicit gap.
+
+---
+
 # Decision Process
 
 New architectural decisions should be documented when they:
