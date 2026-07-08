@@ -168,6 +168,7 @@ Completes an investment after its term ends.
 - validates completion eligibility
 - returns principal
 - marks investment completed
+- enqueues `InvestmentMailer#completed` via `deliver_later`
 
 ### Does Not
 

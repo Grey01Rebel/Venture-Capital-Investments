@@ -1,0 +1,23 @@
+<h1>Your investment has completed</h1>
+
+<p>Hi <%= @user.full_name %>,</p>
+
+<p>
+  Your investment in the <strong><%= @plan.name %></strong> plan has reached
+  the end of its term, and the principal has been returned to your available
+  balance.
+</p>
+
+<ul>
+  <li>Principal returned: <%= number_to_currency(@investment.principal_amount) %></li>
+  <li>Total profit earned: <%= number_to_currency(@investment.total_profit_earned) %></li>
+  <li>Start date: <%= @investment.started_at.to_date %></li>
+  <li>Completed: <%= @investment.completed_at.to_date %></li>
+</ul>
+
+<p>
+  You can view the full performance breakdown at any time:
+  <%= link_to "View investment", investment_url(@investment) %>
+</p>
+
+<p>Thank you for investing with us.</p>

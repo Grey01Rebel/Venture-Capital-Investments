@@ -269,7 +269,19 @@ Refactor status: ✅ complete, confirmed by full test suite (625 unit/integratio
 
 Scoped to the completion transition only (see `docs/Decisions.md`, ADR-016) — approval and rejection are administrative steps, not the moment funds actually move. No orchestration refactor was needed: `CompleteWithdrawalService` already owned the completion transition, so `WithdrawalMailer#completed` was wired directly into it via `deliver_later`.
 
-Status: ✅ implemented, pending test confirmation.
+Status: ✅ implemented and verified (639 unit/integration + 111 system tests, all passing).
+
+### Phase 3 — Investment Completion Notifications
+
+Scoped to the completion transition only (see `docs/Decisions.md`, ADR-017) — daily profit credits are deliberately not emailed individually to avoid notification fatigue, and investment creation is already covered by `DepositMailer#approved` (ADR-015). No orchestration refactor was needed: `CompleteInvestmentService` already owned the completion transition, so `InvestmentMailer#completed` was wired directly into it via `deliver_later`, fired after the wallet lock releases.
+
+The daily-profit digest is explicitly deferred and will be scoped alongside the notification-preferences roadmap item, since cadence (weekly/daily/off) is itself a preference rather than a fixed decision.
+
+Status: ✅ implemented and verified (647 unit/integration + 111 system tests, all passing).
+
+### Milestone 11 Summary
+
+Transactional notifications are complete: deposit approval/rejection (Phase 1), withdrawal completion (Phase 2), and investment completion (Phase 3). Notification preferences and the daily-profit digest remain open, deferred items — see ADR-016 and ADR-017 in `docs/Decisions.md` for the reasoning behind each scoping decision made along the way.
 
 ---
 

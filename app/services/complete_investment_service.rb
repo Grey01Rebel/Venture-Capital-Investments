@@ -29,6 +29,8 @@ class CompleteInvestmentService
       )
     end
 
+    InvestmentMailer.completed(@investment).deliver_later
+
     Result.new(success?: true, investment: @investment, error: nil)
   rescue ActiveRecord::RecordInvalid => e
     failure(e.record.errors.full_messages.to_sentence)

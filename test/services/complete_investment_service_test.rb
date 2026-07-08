@@ -1,6 +1,8 @@
 require "test_helper"
 
 class CompleteInvestmentServiceTest < ActiveSupport::TestCase
+  include ActionMailer::TestHelper
+
   def setup
     @admin = create_confirmed_user
     @admin.update!(role: :admin)
@@ -97,6 +99,13 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
     assert_nil result.error
   end
 
+  test "enqueues a completion notification email on success" do
+    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis7b")
+    assert_enqueued_email_with InvestmentMailer, :completed, args: [investment] do
+      call_service(investment)
+    end
+  end
+
   test "succeeds when ends_at is exactly now" do
     investment = build_investment(ends_at: Time.current, hash_prefix: "cis8")
     result = call_service(investment)
@@ -125,6 +134,15 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
     assert_equal original_balance, @wallet.available_balance
   end
 
+  test "does not enqueue an email for an already completed investment" do
+    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis10b")
+    investment.update!(status: :completed, completed_at: Time.current)
+
+    assert_no_enqueued_emails do
+      call_service(investment)
+    end
+  end
+
   # --- Future end date ---
 
   test "returns failure when ends_at is still in the future" do
@@ -151,6 +169,13 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
     assert investment.active?
   end
 
+  test "does not enqueue an email when ends_at is in the future" do
+    investment = build_investment(ends_at: 1.day.from_now, hash_prefix: "cis13b")
+    assert_no_enqueued_emails do
+      call_service(investment)
+    end
+  end
+
   # --- Missing wallet ---
 
   test "returns failure when wallet is missing" do
@@ -170,6 +195,15 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
 
     investment.reload
     assert investment.active?
+  end
+
+  test "does not enqueue an email when wallet is missing" do
+    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis15b")
+    @wallet.destroy
+
+    assert_no_enqueued_emails do
+      call_service(investment)
+    end
   end
 
   # --- Transaction rollback ---
@@ -201,6 +235,18 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
     CompleteInvestmentService.new(investment).call
 
     assert_equal "active", investment.reload.status
+  end
+
+  test "does not enqueue an email if the transaction rolls back" do
+    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis17b")
+
+    investment.define_singleton_method(:update!) do |*args|
+      raise ActiveRecord::RecordInvalid.new(self)
+    end
+
+    assert_no_enqueued_emails do
+      CompleteInvestmentService.new(investment).call
+    end
   end
 
   # --- Result object shape ---
