@@ -301,17 +301,26 @@ This milestone is optional and will only be implemented if external integrations
 
 ## Milestone 13 – Platform Hardening
 
-Planned improvements:
+Status: In Progress
 
-- Two-factor authentication
-- Audit logging
-- Security headers
-- Monitoring
-- Error reporting
-- Performance optimisation
-- Operational tooling
+Planned improvements, in implementation order:
+
+1. Security headers
+2. Audit logging
+3. Two-factor authentication (admin accounts only, initially)
+4. Performance optimisation
+5. Monitoring and error reporting
+6. Operational tooling
 
 Focus shifts from features to production readiness.
+
+### Phase 1 — Security Headers
+
+Configured an application-wide Content-Security-Policy (`config/initializers/content_security_policy.rb`), scoped to `'self'` throughout since the application loads no third-party resources. `script-src` carries a per-session nonce with no `unsafe-inline`; `style-src` permits `unsafe-inline` as a documented, narrow exception (see `docs/Decisions.md`, ADR-018). Rails' framework-default secure headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`) were already active via `config.load_defaults 8.0` and required no code — verified rather than assumed, and covered by the same test file.
+
+Permissions-Policy initially used Rails' documented `config.permissions_policy` mechanism; test verification against a real request caught that it silently emits only the legacy, browser-unsupported `Feature-Policy` header — a known Rails bug ([rails/rails#48878](https://github.com/rails/rails/issues/48878)), not an application misconfiguration. The real header is now set explicitly in `ApplicationController` instead. See `docs/Decisions.md`, ADR-019.
+
+Status: ✅ implemented and test-verified, including the Permissions-Policy fix. Note: header presence is verified by the automated suite, but CSP enforcement itself is a browser-side behavior the test suite can't observe — a manual smoke test in-browser is recommended before considering this phase fully closed.
 
 ---
 
@@ -382,5 +391,5 @@ Architecture is treated as a long-term asset rather than an afterthought.
 | Milestone 10 – Administrative Operations | ✅ Complete |
 | Milestone 11 – Communication | 🔄 In Progress |
 | Milestone 12 – Public API (Optional) | 🔶 Optional |
-| Milestone 13 – Platform Hardening | ⏳ Planned |
+| Milestone 13 – Platform Hardening | 🔄 In Progress |
 | Milestone 14 – Production Deployment | ⏳ Planned |

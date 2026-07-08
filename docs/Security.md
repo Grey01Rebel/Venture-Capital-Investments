@@ -276,6 +276,28 @@ Raw SQL interpolation is avoided.
 
 ---
 
+# HTTP Security Headers
+
+The application sets an explicit, self-scoped Content-Security-Policy (`config/initializers/content_security_policy.rb`) and a manually-set Permissions-Policy header (`ApplicationController`).
+
+## Content-Security-Policy
+
+The application loads no third-party resources — no external fonts, CDNs, or embedded content — so the policy is scoped to `'self'` rather than the broader `https:` allowance Rails generates by default.
+
+- `script-src 'self'` with a per-session nonce (via `content_security_policy_nonce_directives`), covering importmap and any inline `<script>` tags. No `unsafe-inline` on scripts.
+- `style-src 'self' 'unsafe-inline'` — the one documented exception. See ADR-018 in `docs/Decisions.md` for why this can't be closed with a nonce alone.
+- `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`.
+
+## Permissions-Policy
+
+Camera, microphone, geolocation, USB, payment, and fullscreen access are all disabled outright — the application has no legitimate use for any of them. This is **not** configured via Rails' `config.permissions_policy` — that framework mechanism only emits the legacy, browser-unsupported `Feature-Policy` header (a known Rails limitation, [rails/rails#48878](https://github.com/rails/rails/issues/48878)). The real header is set explicitly in `ApplicationController` via an `after_action`. See ADR-019 in `docs/Decisions.md`.
+
+## Already provided by the framework
+
+Rails' `config.load_defaults 8.0` already sets `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin` on every response without further configuration. These are verified in `test/integration/security_headers_test.rb` alongside the CSP/Permissions-Policy work, but no code was needed to enable them.
+
+---
+
 # Mass Assignment Protection
 
 Controllers permit only explicitly allowed parameters.
