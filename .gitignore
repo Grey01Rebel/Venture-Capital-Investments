@@ -10,6 +10,12 @@
 # Ignore all environment files.
 /.env*
 
+# Generated patch files
+*.patch
+
+# Windows Zone Identifier metadata
+*:Zone.Identifier
+
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*
