@@ -10,9 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_23_234619) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_24_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "audit_logs", force: :cascade do |t|
+    t.bigint "actor_id"
+    t.string "action", null: false
+    t.string "subject_type"
+    t.bigint "subject_id"
+    t.string "ip_address"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["action"], name: "index_audit_logs_on_action"
+    t.index ["actor_id"], name: "index_audit_logs_on_actor_id"
+    t.index ["created_at"], name: "index_audit_logs_on_created_at"
+    t.index ["subject_type", "subject_id"], name: "index_audit_logs_on_subject_type_and_subject_id"
+  end
 
   create_table "deposits", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -136,6 +150,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_23_234619) do
     t.index ["user_id"], name: "index_withdrawals_on_user_id"
   end
 
+  add_foreign_key "audit_logs", "users", column: "actor_id"
   add_foreign_key "deposits", "investment_plans"
   add_foreign_key "deposits", "users"
   add_foreign_key "deposits", "users", column: "reviewed_by_id"

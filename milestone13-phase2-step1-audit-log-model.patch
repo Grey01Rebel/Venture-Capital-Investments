@@ -1,0 +1,319 @@
+diff --git a/app/models/audit_log.rb b/app/models/audit_log.rb
+new file mode 100644
+index 0000000..15c8486
+--- /dev/null
++++ b/app/models/audit_log.rb
+@@ -0,0 +1,47 @@
++class AuditLog < ApplicationRecord
++  belongs_to :actor, class_name: "User", optional: true
++  belongs_to :subject, polymorphic: true, optional: true
++
++  # The full event taxonomy for this application. New events are added
++  # here — and only here — as each is actually wired up; do not add an
++  # event before the code path that triggers it exists.
++  #
++  # `action` is deliberately a validated string, not a Rails `enum`.
++  # `enum` models mutable state a record transitions through (see
++  # Deposit#status, Withdrawal#status); `action` is a write-once
++  # classification chosen at creation and never revisited. See
++  # docs/Decisions.md, ADR-020.
++  ACTIONS = %w[
++    deposit.approved
++    deposit.rejected
++    withdrawal.approved
++    withdrawal.rejected
++    withdrawal.completed
++    investment.completed
++    authorization.denied
++    user.signed_in
++    user.sign_in_failed
++    user.signed_out
++    user.password_reset_requested
++    user.password_reset_completed
++  ].freeze
++
++  validates :action, presence: true, inclusion: { in: ACTIONS }
++
++  before_update  { raise ActiveRecord::ReadOnlyRecord, "AuditLog records are immutable" }
++  before_destroy { raise ActiveRecord::ReadOnlyRecord, "AuditLog records cannot be deleted" }
++
++  # The single sanctioned way to create an audit log entry. Every call
++  # site — services, controllers, the Warden failure hook — goes through
++  # this method rather than AuditLog.create!/.new directly, so there is
++  # one logging API regardless of where an event originates.
++  def self.record!(action:, actor: nil, subject: nil, ip_address: nil, metadata: {})
++    create!(
++      action:     action,
++      actor:      actor,
++      subject:    subject,
++      ip_address: ip_address,
++      metadata:   metadata
++    )
++  end
++end
+diff --git a/app/models/user.rb b/app/models/user.rb
+index af80586..ca657be 100644
+--- a/app/models/user.rb
++++ b/app/models/user.rb
+@@ -23,6 +23,13 @@ class User < ApplicationRecord
+            dependent:   :nullify,
+            inverse_of:  :reviewer
+ 
++  # If the actor's account is later deleted, the audit trail is kept —
++  # only the actor reference is cleared, never the log entry itself.
++  has_many :audit_logs,
++           foreign_key: :actor_id,
++           dependent:   :nullify,
++           inverse_of:  :actor
++
+   enum :role, { member: 0, admin: 1 }, default: :member
+ 
+   validates :full_name, presence: true, length: { maximum: 100 }
+diff --git a/db/migrate/20260624120000_create_audit_logs.rb b/db/migrate/20260624120000_create_audit_logs.rb
+new file mode 100644
+index 0000000..105fac4
+--- /dev/null
++++ b/db/migrate/20260624120000_create_audit_logs.rb
+@@ -0,0 +1,18 @@
++class CreateAuditLogs < ActiveRecord::Migration[8.0]
++  def change
++    create_table :audit_logs do |t|
++      t.references :actor, null: true, foreign_key: { to_table: :users }
++      t.string     :action,       null: false
++      t.string     :subject_type
++      t.bigint     :subject_id
++      t.string     :ip_address
++      t.jsonb      :metadata,     null: false, default: {}
++
++      t.datetime :created_at, null: false
++    end
++
++    add_index :audit_logs, [:subject_type, :subject_id]
++    add_index :audit_logs, :action
++    add_index :audit_logs, :created_at
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 7b4ac6e..f274a84 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,10 +10,24 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[8.0].define(version: 2026_06_23_234619) do
++ActiveRecord::Schema[8.0].define(version: 2026_06_24_120000) do
+   # These are extensions that must be enabled in order to support this database
+   enable_extension "pg_catalog.plpgsql"
+ 
++  create_table "audit_logs", force: :cascade do |t|
++    t.bigint "actor_id"
++    t.string "action", null: false
++    t.string "subject_type"
++    t.bigint "subject_id"
++    t.string "ip_address"
++    t.jsonb "metadata", default: {}, null: false
++    t.datetime "created_at", null: false
++    t.index ["action"], name: "index_audit_logs_on_action"
++    t.index ["actor_id"], name: "index_audit_logs_on_actor_id"
++    t.index ["created_at"], name: "index_audit_logs_on_created_at"
++    t.index ["subject_type", "subject_id"], name: "index_audit_logs_on_subject_type_and_subject_id"
++  end
++
+   create_table "deposits", force: :cascade do |t|
+     t.bigint "user_id", null: false
+     t.bigint "investment_plan_id", null: false
+@@ -136,6 +150,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_23_234619) do
+     t.index ["user_id"], name: "index_withdrawals_on_user_id"
+   end
+ 
++  add_foreign_key "audit_logs", "users", column: "actor_id"
+   add_foreign_key "deposits", "investment_plans"
+   add_foreign_key "deposits", "users"
+   add_foreign_key "deposits", "users", column: "reviewed_by_id"
+diff --git a/test/migrations/create_audit_logs_test.rb b/test/migrations/create_audit_logs_test.rb
+new file mode 100644
+index 0000000..8a9c96d
+--- /dev/null
++++ b/test/migrations/create_audit_logs_test.rb
+@@ -0,0 +1,50 @@
++# frozen_string_literal: true
++require "test_helper"
++
++class CreateAuditLogsMigrationTest < ActiveSupport::TestCase
++  test "audit_logs table exists" do
++    assert ActiveRecord::Base.connection.table_exists?(:audit_logs)
++  end
++
++  test "audit_logs table has expected columns" do
++    columns = ActiveRecord::Base.connection.columns(:audit_logs).map(&:name)
++
++    %w[
++      actor_id action subject_type subject_id
++      ip_address metadata created_at
++    ].each do |expected_column|
++      assert_includes columns, expected_column, "Expected audit_logs table to have column: #{expected_column}"
++    end
++  end
++
++  test "audit_logs table has no updated_at column" do
++    columns = ActiveRecord::Base.connection.columns(:audit_logs).map(&:name)
++    assert_not_includes columns, "updated_at"
++  end
++
++  test "action column is not nullable" do
++    column = ActiveRecord::Base.connection.columns(:audit_logs).find { |c| c.name == "action" }
++    assert_not column.null
++  end
++
++  test "actor_id is nullable" do
++    column = ActiveRecord::Base.connection.columns(:audit_logs).find { |c| c.name == "actor_id" }
++    assert column.null
++  end
++
++  test "metadata column is jsonb defaulting to an empty object" do
++    column = ActiveRecord::Base.connection.columns(:audit_logs).find { |c| c.name == "metadata" }
++    assert_equal :jsonb, column.type
++    assert_not column.null
++  end
++
++  test "an index exists on action" do
++    indexes = ActiveRecord::Base.connection.indexes(:audit_logs)
++    assert indexes.any? { |i| i.columns == ["action"] }
++  end
++
++  test "an index exists on subject_type and subject_id" do
++    indexes = ActiveRecord::Base.connection.indexes(:audit_logs)
++    assert indexes.any? { |i| i.columns == ["subject_type", "subject_id"] }
++  end
++end
+diff --git a/test/models/audit_log_test.rb b/test/models/audit_log_test.rb
+new file mode 100644
+index 0000000..237784d
+--- /dev/null
++++ b/test/models/audit_log_test.rb
+@@ -0,0 +1,124 @@
++require "test_helper"
++
++class AuditLogTest < ActiveSupport::TestCase
++  def setup
++    @admin = create_confirmed_user
++    @admin.update!(role: :admin)
++  end
++
++  def valid_attributes
++    {
++      action: "authorization.denied",
++      actor:  @admin
++    }
++  end
++
++  # Validity
++  test "creates a valid audit log with all required attributes" do
++    log = AuditLog.new(valid_attributes)
++    assert log.valid?, "Expected log to be valid: #{log.errors.full_messages}"
++  end
++
++  test "is invalid without an action" do
++    log = AuditLog.new(valid_attributes.merge(action: nil))
++    assert_not log.valid?
++    assert log.errors[:action].any?
++  end
++
++  test "is invalid with an action not in the known taxonomy" do
++    log = AuditLog.new(valid_attributes.merge(action: "something.made_up"))
++    assert_not log.valid?
++    assert log.errors[:action].any?
++  end
++
++  test "is valid without an actor" do
++    log = AuditLog.new(valid_attributes.merge(actor: nil))
++    assert log.valid?
++  end
++
++  test "is valid without a subject" do
++    log = AuditLog.new(valid_attributes)
++    assert_nil log.subject
++    assert log.valid?
++  end
++
++  # metadata defaults
++  test "metadata defaults to an empty hash" do
++    log = AuditLog.create!(valid_attributes)
++    assert_equal({}, log.metadata)
++  end
++
++  test "metadata stores arbitrary jsonb content" do
++    log = AuditLog.create!(valid_attributes.merge(metadata: { attempted_email: "someone@example.com" }))
++    assert_equal "someone@example.com", log.reload.metadata["attempted_email"]
++  end
++
++  # Associations
++  test "belongs to an actor" do
++    log = AuditLog.create!(valid_attributes)
++    assert_equal @admin, log.actor
++  end
++
++  test "belongs to a polymorphic subject" do
++    log = AuditLog.create!(valid_attributes.merge(subject: @admin))
++    assert_equal @admin, log.subject
++    assert_equal "User", log.subject_type
++  end
++
++  test "user has many audit_logs as actor" do
++    log = AuditLog.create!(valid_attributes)
++    assert_includes @admin.audit_logs, log
++  end
++
++  test "deleting the actor nullifies actor_id rather than destroying the log" do
++    log = AuditLog.create!(valid_attributes)
++    @admin.destroy
++    assert_nil log.reload.actor_id
++  end
++
++  # Immutability
++  test "raises when attempting to update an existing log" do
++    log = AuditLog.create!(valid_attributes)
++    assert_raises(ActiveRecord::ReadOnlyRecord) do
++      log.update!(action: "user.signed_in")
++    end
++  end
++
++  test "raises when attempting to destroy a log" do
++    log = AuditLog.create!(valid_attributes)
++    assert_raises(ActiveRecord::ReadOnlyRecord) do
++      log.destroy!
++    end
++  end
++
++  test "log is unchanged after a failed update attempt" do
++    log = AuditLog.create!(valid_attributes)
++    assert_raises(ActiveRecord::ReadOnlyRecord) { log.update!(action: "user.signed_in") }
++    assert_equal "authorization.denied", log.reload.action
++  end
++
++  # .record! entry point
++  test "record! creates a log with the given attributes" do
++    log = AuditLog.record!(action: "user.signed_in", actor: @admin, ip_address: "127.0.0.1")
++
++    assert log.persisted?
++    assert_equal "user.signed_in", log.action
++    assert_equal @admin, log.actor
++    assert_equal "127.0.0.1", log.ip_address
++  end
++
++  test "record! defaults actor, subject, ip_address, and metadata" do
++    log = AuditLog.record!(action: "investment.completed")
++
++    assert_nil log.actor
++    assert_nil log.subject
++    assert_nil log.ip_address
++    assert_equal({}, log.metadata)
++  end
++
++  test "record! raises on an invalid action rather than silently failing" do
++    assert_raises(ActiveRecord::RecordInvalid) do
++      AuditLog.record!(action: "not.a.real.event")
++    end
++  end
++end
