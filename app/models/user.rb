@@ -23,6 +23,13 @@ class User < ApplicationRecord
            dependent:   :nullify,
            inverse_of:  :reviewer
 
+  # If the actor's account is later deleted, the audit trail is kept —
+  # only the actor reference is cleared, never the log entry itself.
+  has_many :audit_logs,
+           foreign_key: :actor_id,
+           dependent:   :nullify,
+           inverse_of:  :actor
+
   enum :role, { member: 0, admin: 1 }, default: :member
 
   validates :full_name, presence: true, length: { maximum: 100 }
