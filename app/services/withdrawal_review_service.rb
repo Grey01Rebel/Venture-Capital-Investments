@@ -1,11 +1,12 @@
 class WithdrawalReviewService
   Result = Struct.new(:success?, :withdrawal, :error, keyword_init: true)
 
-  def initialize(withdrawal:, action:, reviewer:, admin_notes: nil)
+  def initialize(withdrawal:, action:, reviewer:, admin_notes: nil, ip_address: nil)
     @withdrawal  = withdrawal
     @action      = action
     @reviewer    = reviewer
     @admin_notes = admin_notes
+    @ip_address  = ip_address
   end
 
   def call
@@ -28,6 +29,13 @@ class WithdrawalReviewService
       approved_at:  Time.current,
       reviewer:     @reviewer,
       admin_notes:  @admin_notes
+    )
+
+    AuditLog.record!(
+      action:     "withdrawal.approved",
+      actor:      @reviewer,
+      subject:    @withdrawal,
+      ip_address: @ip_address
     )
 
     Result.new(success?: true, withdrawal: @withdrawal, error: nil)
@@ -54,6 +62,13 @@ class WithdrawalReviewService
         available_balance: wallet.available_balance + @withdrawal.amount
       )
     end
+
+    AuditLog.record!(
+      action:     "withdrawal.rejected",
+      actor:      @reviewer,
+      subject:    @withdrawal,
+      ip_address: @ip_address
+    )
 
     Result.new(success?: true, withdrawal: @withdrawal, error: nil)
   rescue ActiveRecord::RecordInvalid => e

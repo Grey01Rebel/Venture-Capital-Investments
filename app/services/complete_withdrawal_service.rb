@@ -2,9 +2,11 @@
 class CompleteWithdrawalService
   Result = Struct.new(:success?, :withdrawal, :error, keyword_init: true)
 
-  def initialize(withdrawal:, transaction_hash:)
+  def initialize(withdrawal:, transaction_hash:, actor: nil, ip_address: nil)
     @withdrawal       = withdrawal
     @transaction_hash = transaction_hash.to_s.strip
+    @actor            = actor
+    @ip_address       = ip_address
   end
 
   def call
@@ -18,6 +20,13 @@ class CompleteWithdrawalService
     )
 
     WithdrawalMailer.completed(@withdrawal).deliver_later
+
+    AuditLog.record!(
+      action:     "withdrawal.completed",
+      actor:      @actor,
+      subject:    @withdrawal,
+      ip_address: @ip_address
+    )
 
     Result.new(success?: true, withdrawal: @withdrawal, error: nil)
   rescue ActiveRecord::RecordInvalid => e

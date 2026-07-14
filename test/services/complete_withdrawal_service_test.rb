@@ -159,4 +159,37 @@ class CompleteWithdrawalServiceTest < ActiveSupport::TestCase
       call_service
     end
   end
+
+  # --- audit logging ---
+
+  test "creates an audit log entry on completion" do
+    assert_difference "AuditLog.count", 1 do
+      call_service
+    end
+
+    log = AuditLog.last
+    assert_equal "withdrawal.completed", log.action
+    assert_equal @withdrawal, log.subject
+  end
+
+  test "records the given actor and ip_address on the audit log entry" do
+    CompleteWithdrawalService.new(
+      withdrawal:       @withdrawal,
+      transaction_hash: "actorcheck#{SecureRandom.hex(8)}",
+      actor:            @admin,
+      ip_address:       "203.0.113.11"
+    ).call
+
+    log = AuditLog.last
+    assert_equal @admin, log.actor
+    assert_equal "203.0.113.11", log.ip_address
+  end
+
+  test "does not create an audit log entry for an ineligible withdrawal" do
+    @withdrawal.update!(status: :pending, approved_at: nil, reviewed_by_id: nil)
+
+    assert_no_difference "AuditLog.count" do
+      call_service
+    end
+  end
 end

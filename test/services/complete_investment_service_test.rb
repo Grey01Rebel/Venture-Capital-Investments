@@ -106,6 +106,27 @@ class CompleteInvestmentServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "creates an audit log entry on successful completion" do
+    investment = build_investment(ends_at: 1.day.ago, hash_prefix: "cis7c")
+
+    assert_difference "AuditLog.count", 1 do
+      call_service(investment)
+    end
+
+    log = AuditLog.last
+    assert_equal "investment.completed", log.action
+    assert_equal investment, log.subject
+    assert_nil log.actor
+  end
+
+  test "does not create an audit log entry for an ineligible investment" do
+    investment = build_investment(ends_at: 1.day.from_now, hash_prefix: "cis7d")
+
+    assert_no_difference "AuditLog.count" do
+      call_service(investment)
+    end
+  end
+
   test "succeeds when ends_at is exactly now" do
     investment = build_investment(ends_at: Time.current, hash_prefix: "cis8")
     result = call_service(investment)

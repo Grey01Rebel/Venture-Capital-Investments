@@ -99,6 +99,57 @@ class WithdrawalReviewServiceTest < ActiveSupport::TestCase
     assert_nil result.error
   end
 
+  # --- audit logging ---
+
+  test "creates an audit log entry on approval" do
+    assert_difference "AuditLog.count", 1 do
+      call_service(action: :approve)
+    end
+
+    log = AuditLog.last
+    assert_equal "withdrawal.approved", log.action
+    assert_equal @admin, log.actor
+    assert_equal @withdrawal, log.subject
+  end
+
+  test "creates an audit log entry on rejection" do
+    assert_difference "AuditLog.count", 1 do
+      call_service(action: :reject)
+    end
+
+    log = AuditLog.last
+    assert_equal "withdrawal.rejected", log.action
+    assert_equal @admin, log.actor
+    assert_equal @withdrawal, log.subject
+  end
+
+  test "records the given ip_address on the audit log entry" do
+    WithdrawalReviewService.new(
+      withdrawal: @withdrawal, action: :approve, reviewer: @admin, ip_address: "203.0.113.9"
+    ).call
+
+    assert_equal "203.0.113.9", AuditLog.last.ip_address
+  end
+
+  test "does not create an audit log entry when the withdrawal is not pending" do
+    @withdrawal.update!(status: :approved, approved_at: Time.current, reviewer: @admin)
+
+    assert_no_difference "AuditLog.count" do
+      call_service(action: :approve)
+    end
+  end
+
+  test "does not create an audit log entry if rejection wallet update fails" do
+    original_method = Wallet.instance_method(:update!)
+    Wallet.define_method(:update!) { |*args| raise ActiveRecord::RecordInvalid.new(self) }
+
+    assert_no_difference "AuditLog.count" do
+      call_service(action: :reject)
+    end
+  ensure
+    Wallet.define_method(:update!, original_method)
+  end
+
   # --- guard: not pending ---
 
   test "returns failure if withdrawal is already approved" do

@@ -23,7 +23,8 @@ class Admin::WithdrawalsController < Admin::BaseController
       withdrawal:  @withdrawal,
       action:      :approve,
       reviewer:    current_user,
-      admin_notes: params[:admin_notes].presence
+      admin_notes: params[:admin_notes].presence,
+      ip_address:  request.remote_ip
     ).call
 
     if result.success?
@@ -39,7 +40,8 @@ class Admin::WithdrawalsController < Admin::BaseController
       withdrawal:  @withdrawal,
       action:      :reject,
       reviewer:    current_user,
-      admin_notes: params[:admin_notes].presence
+      admin_notes: params[:admin_notes].presence,
+      ip_address:  request.remote_ip
     ).call
 
     if result.success?
@@ -53,7 +55,9 @@ class Admin::WithdrawalsController < Admin::BaseController
     authorize @withdrawal
     result = CompleteWithdrawalService.new(
       withdrawal:       @withdrawal,
-      transaction_hash: params[:transaction_hash]
+      transaction_hash: params[:transaction_hash],
+      actor:            current_user,
+      ip_address:       request.remote_ip
     ).call
 
     if result.success?

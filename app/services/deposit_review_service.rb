@@ -2,11 +2,12 @@
 class DepositReviewService
   Result = Struct.new(:success?, :deposit, :error, keyword_init: true)
 
-  def initialize(deposit:, action:, reviewer:, admin_notes: nil)
+  def initialize(deposit:, action:, reviewer:, admin_notes: nil, ip_address: nil)
     @deposit     = deposit
     @action      = action
     @reviewer    = reviewer
     @admin_notes = admin_notes
+    @ip_address  = ip_address
   end
 
   def call
@@ -46,6 +47,12 @@ class DepositReviewService
     else
       @deposit.reload
       DepositMailer.approved(@deposit).deliver_later
+      AuditLog.record!(
+        action:     "deposit.approved",
+        actor:      @reviewer,
+        subject:    @deposit,
+        ip_address: @ip_address
+      )
       Result.new(success?: true, deposit: @deposit, error: nil)
     end
   rescue ActiveRecord::RecordInvalid => e
@@ -55,6 +62,12 @@ class DepositReviewService
   def perform_rejection
     if @deposit.reject!(reviewer: @reviewer, notes: @admin_notes)
       DepositMailer.rejected(@deposit).deliver_later
+      AuditLog.record!(
+        action:     "deposit.rejected",
+        actor:      @reviewer,
+        subject:    @deposit,
+        ip_address: @ip_address
+      )
       Result.new(success?: true, deposit: @deposit, error: nil)
     else
       failure("Deposit could not be rejected.")
