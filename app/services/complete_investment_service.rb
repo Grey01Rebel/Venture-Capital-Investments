@@ -31,6 +31,13 @@ class CompleteInvestmentService
 
     InvestmentMailer.completed(@investment).deliver_later
 
+    # Triggered by CompleteInvestmentsJob on a schedule, not by an admin
+    # action, so there is no human actor or request to attribute this to.
+    AuditLog.record!(
+      action:  "investment.completed",
+      subject: @investment
+    )
+
     Result.new(success?: true, investment: @investment, error: nil)
   rescue ActiveRecord::RecordInvalid => e
     failure(e.record.errors.full_messages.to_sentence)

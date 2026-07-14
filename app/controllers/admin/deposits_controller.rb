@@ -23,7 +23,8 @@ class Admin::DepositsController < Admin::BaseController
       deposit:     @deposit,
       action:      :approve,
       reviewer:    current_user,
-      admin_notes: params[:admin_notes].presence
+      admin_notes: params[:admin_notes].presence,
+      ip_address:  request.remote_ip
     ).call
 
     if result.success?
@@ -39,7 +40,8 @@ class Admin::DepositsController < Admin::BaseController
       deposit:     @deposit,
       action:      :reject,
       reviewer:    current_user,
-      admin_notes: params[:admin_notes].presence
+      admin_notes: params[:admin_notes].presence,
+      ip_address:  request.remote_ip
     ).call
 
     if result.success?

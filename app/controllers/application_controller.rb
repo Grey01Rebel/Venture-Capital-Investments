@@ -17,7 +17,15 @@ class ApplicationController < ActionController::Base
 
   private
 
-  def user_not_authorized
+  def user_not_authorized(exception)
+    AuditLog.record!(
+      action:     "authorization.denied",
+      actor:      current_user,
+      subject:    exception.record,
+      ip_address: request.remote_ip,
+      metadata:   { query: exception.query.to_s, policy: exception.policy.class.name }
+    )
+
     redirect_to authenticated_root_path, alert: "You are not authorised to perform that action."
   end
 
